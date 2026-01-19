@@ -15,6 +15,7 @@ module dshr_strdata_mod
   use ESMF             , only : ESMF_POLEMETHOD_ALLAVG, ESMF_EXTRAPMETHOD_NEAREST_STOD
   use ESMF             , only : ESMF_REGRIDMETHOD_BILINEAR, ESMF_REGRIDMETHOD_NEAREST_STOD, ESMF_FieldSMMStore
   use ESMF             , only : ESMF_REGRIDMETHOD_CONSERVE, ESMF_NORMTYPE_FRACAREA, ESMF_NORMTYPE_DSTAREA
+  use ESMF             , only : ESMF_REGRIDMETHOD_PATCH
   use ESMF             , only : ESMF_ClockGet, operator(-), operator(==), ESMF_CALKIND_NOLEAP
   use ESMF             , only : ESMF_FieldReGridStore, ESMF_FieldRedistStore, ESMF_UNMAPPEDACTION_IGNORE
   use ESMF             , only : ESMF_TERMORDER_SRCSEQ, ESMF_FieldRegrid, ESMF_FieldFill, ESMF_FieldIsCreated
@@ -639,6 +640,16 @@ contains
              call ESMF_FieldRegridStore(sdat%pstrm(ns)%field_stream, lfield_dst, &
                   routehandle=sdat%pstrm(ns)%routehandle, &
                   regridmethod=ESMF_REGRIDMETHOD_BILINEAR,  &
+                  polemethod=ESMF_POLEMETHOD_ALLAVG, &
+                  extrapMethod=ESMF_EXTRAPMETHOD_NEAREST_STOD, &
+                  dstMaskValues=(/sdat%stream(ns)%dst_mask_val/), &
+                  srcMaskValues=(/sdat%stream(ns)%src_mask_val/), &
+                  srcTermProcessing=srcTermProcessing_Value, ignoreDegenerate=.true., rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+          else if (trim(sdat%stream(ns)%mapalgo) == "patch") then
+             call ESMF_FieldRegridStore(sdat%pstrm(ns)%field_stream, lfield_dst, &
+                  routehandle=sdat%pstrm(ns)%routehandle, &
+                  regridmethod=ESMF_REGRIDMETHOD_PATCH,  &
                   polemethod=ESMF_POLEMETHOD_ALLAVG, &
                   extrapMethod=ESMF_EXTRAPMETHOD_NEAREST_STOD, &
                   dstMaskValues=(/sdat%stream(ns)%dst_mask_val/), &
