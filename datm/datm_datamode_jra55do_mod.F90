@@ -251,8 +251,15 @@ contains
 
     do n = 1,lsize
        Sa_z(n) = 10.0_R8
-       Sa_pbot(n) = Sa_pslv(n)
-       Sa_ptem(n) = Sa_tbot(n)
+       ! Set export fields as copies directly from streams
+       Sa_pslv(n)   = strm_Sa_pslv(n)
+       Sa_pbot(n)   = strm_Sa_pslv(n)
+       Sa_tbot(n)   = strm_Sa_tbot(n)
+       Sa_ptem(n)   = strm_Sa_tbot(n)
+       Sa_u(n)      = strm_Sa_u(n)
+       Sa_v(n)      = strm_Sa_v(n)
+       Sa_shum(n)   = strm_Sa_shum(n)
+       Faxa_lwdn(n) = strm_Faxa_lwdn(n)
 
        ! density computation for JRA55-do forcing
        Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1 + 0.608*Sa_shum(n)))
@@ -273,11 +280,6 @@ contains
        avg_alb = ( 0.069 - 0.011*cos(2.0_R8*yc(n)*degtorad ) )
        Faxa_swnet(n) = strm_Faxa_swdn(n)*(1.0_R8 - avg_alb)
     enddo   ! lsize
-
-    if (associated(Faxa_ndep)) then
-       ! convert ndep flux to units of kgN/m2/s (input is in gN/m2/s)
-       Faxa_ndep(:,:) = Faxa_ndep(:,:) / 1000._r8
-    end if
 
   end subroutine datm_datamode_jra55do_advance
 
