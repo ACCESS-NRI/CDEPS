@@ -42,7 +42,7 @@ module datm_datamode_jra55do_mod
   real(r8), pointer :: Faxa_swvdr(:) => null()
   real(r8), pointer :: Faxa_swvdf(:) => null()
   real(r8), pointer :: Faxa_swnet(:) => null()
-  real(r8), pointer :: Faxa_ndep(:,:) => null()
+  real(r8), pointer :: Faxa_lwdn(:) => null()
 
   ! stream data
   real(r8), pointer :: strm_Sa_tbot(:)    => null()
@@ -184,6 +184,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_swnet' , fldptr1=Faxa_swnet , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_lwdn' ,  fldptr1=Faxa_lwdn  , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call shr_strdata_get_stream_pointer( sdat, 'Sa_tbot'   , strm_Sa_tbot    , requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_tbot must be associated for jra55do datamode', rc=rc)
@@ -212,13 +214,6 @@ contains
     call shr_strdata_get_stream_pointer( sdat, 'Faxa_swdn' , strm_Faxa_swdn  , requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_swdn must be associated for jra55do datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    ! call ESMF_StateGet(exportState, 'Faxa_ndep', itemFlag, rc=rc)
-    ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! if (itemflag /= ESMF_STATEITEM_NOTFOUND) then
-    !    call dshr_state_getfldptr(exportState, 'Faxa_ndep', fldptr2=Faxa_ndep, rc=rc)
-    !    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! end if
 
   end subroutine datm_datamode_jra55do_init_pointers
 
@@ -250,7 +245,7 @@ contains
     cosfactor = cos((2.0_R8*SHR_CONST_PI*rday)/365 - phs_c0)
 
     do n = 1,lsize
-       Sa_z(n) = 10.0_R8
+
        ! Set export fields as copies directly from streams
        Sa_pslv(n)   = strm_Sa_pslv(n)
        Sa_pbot(n)   = strm_Sa_pslv(n)
@@ -260,6 +255,9 @@ contains
        Sa_v(n)      = strm_Sa_v(n)
        Sa_shum(n)   = strm_Sa_shum(n)
        Faxa_lwdn(n) = strm_Faxa_lwdn(n)
+
+       ! Set Sa_z to a constant
+       Sa_z(n) = 10.0_R8
 
        ! density computation for JRA55-do forcing
        Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1 + 0.608*Sa_shum(n)))
