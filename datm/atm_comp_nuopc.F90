@@ -400,8 +400,7 @@ contains
        call datm_datamode_jra_advertise(exportState, fldsExport, flds_scalar_name, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case ('JRA55do')
-       call datm_datamode_jra55do_advertise(exportState, fldsExport, flds_scalar_name, &
-            flds_co2, flds_wiso, flds_presaero, flds_presndep, rc)
+       call datm_datamode_jra55do_advertise(exportState, fldsExport, flds_scalar_name, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case ('CLMNCEP')
        call datm_datamode_clmncep_advertise(exportState, fldsExport, flds_scalar_name, rc)
