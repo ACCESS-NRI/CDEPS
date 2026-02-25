@@ -3,21 +3,18 @@
 
 module datm_datamode_jra55do_mod
 
-  use ESMF             , only : ESMF_State, ESMF_StateGet, ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
-  use ESMF             , only : ESMF_MeshGet
-  use ESMF             , only : ESMF_StateItem_Flag, ESMF_STATEITEM_NOTFOUND, operator(/=)
+  use ESMF             , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_INFO
+  use ESMF             , only : ESMF_State, ESMF_StateGet, ESMF_MeshGet
   use NUOPC            , only : NUOPC_Advertise
-  use shr_kind_mod     , only : r8=>shr_kind_r8, i8=>shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
-  use shr_sys_mod      , only : shr_sys_abort
+  use shr_kind_mod     , only : r8=>shr_kind_r8
   use shr_cal_mod      , only : shr_cal_date2julian
   use shr_const_mod    , only : shr_const_tkfrz, shr_const_pi, shr_const_rdair
   use dshr_strdata_mod , only : shr_strdata_get_stream_pointer, shr_strdata_type
-  use dshr_methods_mod , only : dshr_state_getfldptr, dshr_fldbun_getfldptr, dshr_fldbun_regrid, chkerr
-  use dshr_strdata_mod , only : shr_strdata_type
+  use dshr_methods_mod , only : dshr_state_getfldptr, chkerr
   use dshr_fldlist_mod , only : fldlist_type, dshr_fldlist_add
 
   implicit none
-  private ! except
+  private
 
   public  :: datm_datamode_jra55do_advertise
   public  :: datm_datamode_jra55do_init_pointers
@@ -27,6 +24,8 @@ module datm_datamode_jra55do_mod
   real(r8), pointer :: Sa_z(:)       => null()
   real(r8), pointer :: Sa_u(:)       => null()
   real(r8), pointer :: Sa_v(:)       => null()
+  real(r8), pointer :: Sa_u10m(:)    => null()
+  real(r8), pointer :: Sa_v10m(:)    => null()
   real(r8), pointer :: Sa_tbot(:)    => null()
   real(r8), pointer :: Sa_ptem(:)    => null()
   real(r8), pointer :: Sa_shum(:)    => null()
@@ -42,21 +41,23 @@ module datm_datamode_jra55do_mod
   real(r8), pointer :: Faxa_swvdr(:) => null()
   real(r8), pointer :: Faxa_swvdf(:) => null()
   real(r8), pointer :: Faxa_swnet(:) => null()
-  real(r8), pointer :: Faxa_lwdn(:) => null()
+  real(r8), pointer :: Faxa_swdn(:)  => null()
+  real(r8), pointer :: Faxa_lwdn(:)  => null()
 
-  ! stream data
-  real(r8), pointer :: strm_Sa_tbot(:)    => null()
-  real(r8), pointer :: strm_Sa_pslv(:)    => null()
-  real(r8), pointer :: strm_Sa_u(:)       => null()
-  real(r8), pointer :: strm_Sa_v(:)       => null()
-  real(r8), pointer :: strm_Sa_shum(:)    => null()
-  real(r8), pointer :: strm_Faxa_prrn(:)  => null()   ! Rainfall flux
-  real(r8), pointer :: strm_Faxa_prsn(:)  => null()   ! Snowfall flux
-  real(r8), pointer :: strm_Faxa_lwdn(:)  => null()
-  real(r8), pointer :: strm_Faxa_swdn(:)  => null()
+  ! stream data pointers
+  real(r8), pointer :: strm_Sa_tbot(:)   => null()
+  real(r8), pointer :: strm_Sa_pslv(:)   => null()
+  real(r8), pointer :: strm_Sa_u(:)      => null()
+  real(r8), pointer :: strm_Sa_v(:)      => null()
+  real(r8), pointer :: strm_Sa_shum(:)   => null()
+  real(r8), pointer :: strm_Faxa_prec(:) => null()   ! Jra provides one precip flux
+  real(r8), pointer :: strm_Faxa_prrn(:) => null()   ! Jra55do provides rainfall flux
+  real(r8), pointer :: strm_Faxa_prsn(:) => null()   ! and Snowfall flux seperately
+  real(r8), pointer :: strm_Faxa_lwdn(:) => null()
+  real(r8), pointer :: strm_Faxa_swdn(:) => null()
 
-  ! othe module arrays
-  real(R8), pointer :: yc(:)                 ! array of model latitudes
+  ! other module arrays
+  real(R8), pointer :: yc(:) ! array of model latitudes
 
   ! constants
   real(R8) , parameter :: tKFrz    = SHR_CONST_TKFRZ
@@ -65,9 +66,8 @@ module datm_datamode_jra55do_mod
   real(R8) , parameter :: phs_c0   =   0.298_R8
   real(R8) , parameter :: dLWarc   =  -5.000_R8
 
-  character(*), parameter :: nullstr = 'null'
-  character(*), parameter :: rpfile  = 'rpointer.atm'
-  character(*), parameter :: u_FILE_u = &
+  character(len=*), parameter :: nullstr = 'null'
+  character(len=*), parameter :: u_FILE_u = &
        __FILE__
 
 !===============================================================================
@@ -92,6 +92,8 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_z'       )
     call dshr_fldList_add(fldsExport, 'Sa_u'       )
     call dshr_fldList_add(fldsExport, 'Sa_v'       )
+    call dshr_fldList_add(fldsExport, 'Sa_u10m'    )
+    call dshr_fldList_add(fldsExport, 'Sa_v10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_ptem'    )
     call dshr_fldList_add(fldsExport, 'Sa_dens'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
@@ -130,18 +132,15 @@ contains
 
     ! local variables
     integer           :: n
-    integer           :: lsize
     integer           :: spatialDim         ! number of dimension in mesh
     integer           :: numOwnedElements   ! size of mesh
     real(r8), pointer :: ownedElemCoords(:) ! mesh lat and lons
-    type(ESMF_StateItem_Flag) :: itemFlag
-    character(len=*), parameter :: subname='(datm_datamode_jra55do_init_pointers): '
+    character(len=*), parameter :: subname='(datm_init_pointers): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
-    lsize = sdat%model_lsize
-
+    ! determine yc
     call ESMF_MeshGet(sdat%model_mesh, spatialDim=spatialDim, numOwnedElements=numOwnedElements, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     allocate(ownedElemCoords(spatialDim*numOwnedElements))
@@ -152,6 +151,15 @@ contains
        yc(n) = ownedElemCoords(2*n)
     end do
 
+    ! initialize export state pointers
+    call dshr_state_getfldptr(exportState, 'Sa_u'       , fldptr1=Sa_u       , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_v'       , fldptr1=Sa_v       , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_u10m'    , fldptr1=Sa_u10m    , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_v10m'    , fldptr1=Sa_v10m    , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_z'       , fldptr1=Sa_z       , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , rc=rc)
@@ -184,14 +192,30 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_swnet' , fldptr1=Faxa_swnet , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call dshr_state_getfldptr(exportState, 'Faxa_lwdn' ,  fldptr1=Faxa_lwdn  , rc=rc)
+    call dshr_state_getfldptr(exportState, 'Faxa_swdn' , fldptr1=Faxa_swdn  , rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_lwdn' , fldptr1=Faxa_lwdn  , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call shr_strdata_get_stream_pointer( sdat, 'Sa_tbot'   , strm_Sa_tbot    , requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Sa_tbot must be associated for jra55do datamode', rc=rc)
+    ! initialize stream pointers
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prrn' , strm_Faxa_prrn  , requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_prrn must be associated for jra55do datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prsn' , strm_Faxa_prsn  , requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_prsn must be associated for jra55do datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_swdn' , strm_Faxa_swdn  , requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swdn must be associated for jra55do datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_lwdn' , strm_Faxa_lwdn  , requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_lwdn must be associated for jra55do datamode', rc=rc)
+
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer( sdat, 'Sa_pslv'   , strm_Sa_pslv    , requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_pslv must be associated for jra55do datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer( sdat, 'Sa_tbot'   , strm_Sa_tbot    , requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_tbot must be associated for jra55do datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer( sdat, 'Sa_u'      , strm_Sa_u       , requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_u must be associated for jra55do datamode', rc=rc)
@@ -201,18 +225,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer( sdat, 'Sa_shum'   , strm_Sa_shum    , requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_shum must be associated for jra55do datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prrn' , strm_Faxa_prrn  , requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_prrn must be associated for jra55do datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prsn' , strm_Faxa_prsn  , requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_prsn must be associated for jra55do datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_lwdn' , strm_Faxa_lwdn  , requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_lwdn must be associated for jra55do datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_swdn' , strm_Faxa_swdn  , requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_swdn must be associated for jra55do datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine datm_datamode_jra55do_init_pointers
@@ -230,15 +242,17 @@ contains
     ! local variables
     integer           :: n
     integer           :: lsize
+
     real(R8)          :: avg_alb            ! average albedo
     real(R8)          :: rday               ! elapsed day
     real(R8)          :: cosFactor          ! cosine factor
-    character(len=*), parameter :: subname='(datm_datamode_jra55do_advance): '
+    character(len=*), parameter :: subname='(datm_datamode_jra): '
     !-------------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
 
     lsize = size(Sa_z)
+
 
     call shr_cal_date2julian(target_ymd, target_tod, rday, model_calendar)
     rday = mod((rday - 1.0_R8),365.0_R8)
@@ -254,12 +268,17 @@ contains
        Sa_u(n)      = strm_Sa_u(n)
        Sa_v(n)      = strm_Sa_v(n)
        Sa_shum(n)   = strm_Sa_shum(n)
+       Faxa_swdn(n) = strm_Faxa_swdn(n)
        Faxa_lwdn(n) = strm_Faxa_lwdn(n)
 
        ! Set Sa_z to a constant
        Sa_z(n) = 10.0_R8
 
-       ! density computation for JRA55-do forcing
+       ! Set Sa_u10m and Sa_v10m to Sa_u and Sa_v
+       Sa_u10m(n) = Sa_u(n)
+       Sa_v10m(n) = Sa_v(n)
+
+       ! density computation for JRA55 forcing
        Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1 + 0.608*Sa_shum(n)))
 
        ! precipitation data
