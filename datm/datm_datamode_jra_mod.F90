@@ -207,7 +207,7 @@ contains
     if ( .not. ((associated(strm_Faxa_prec) & !jra 55
           .or. (associated(strm_Faxa_prrn) .and. associated(strm_Faxa_prsn))))) & !jra55do
           call shr_log_error(subName//"ERROR: strm_Faxa_prec or (strm_Faxa_prrn and strm_Faxa_prsn) "//&
-               "must be associated for jra datamore", rc=rc)
+               "must be associated for jra datamode", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call shr_strdata_get_stream_pointer( sdat, 'Faxa_swdn' , strm_Faxa_swdn  , requirePointer=.true., &
