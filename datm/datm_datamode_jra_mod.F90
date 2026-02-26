@@ -206,7 +206,7 @@ contains
 
     if ( .not. ((associated(strm_Faxa_prec) & !jra 55
           .or. (associated(strm_Faxa_prrn) .and. associated(strm_Faxa_prsn))))) & !jra55do
-          call shr_log_error(subName//"ERROR: strm_Faxa_prec or (strm_Faxa_prrn and strm_Faxa_prsn)"//&
+          call shr_log_error(subName//"ERROR: strm_Faxa_prec or (strm_Faxa_prrn and strm_Faxa_prsn) "//&
                "must be associated for jra datamore", rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
