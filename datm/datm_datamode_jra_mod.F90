@@ -197,17 +197,13 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! initialize stream pointers
-    ! jra 55
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prec' , strm_Faxa_prec  , &
-         errmsg=subname//'ERROR: strm_Faxa_prec must be associated for jra datamode', rc=rc)
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prec' , strm_Faxa_prec  , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    ! jra 55do
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prrn' , strm_Faxa_prrn  ,  &
-         errmsg=subname//'ERROR: strm_Faxa_prrn must be associated for jra55do datamode', rc=rc)
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prrn' , strm_Faxa_prrn  , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prsn' , strm_Faxa_prsn  , &
-         errmsg=subname//'ERROR: strm_Faxa_prsn must be associated for jra55do datamode', rc=rc)
+    call shr_strdata_get_stream_pointer( sdat, 'Faxa_prsn' , strm_Faxa_prsn  , rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     if ( .not. ((associated(strm_Faxa_prec) & !jra 55
           .or. (associated(strm_Faxa_prrn) .and. associated(strm_Faxa_prsn))))) & !jra55do
           call shr_log_error(subName//"ERROR: strm_Faxa_prec or (strm_Faxa_prrn and strm_Faxa_prsn)"//&
