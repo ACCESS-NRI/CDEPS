@@ -22,6 +22,9 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_z(:)              => null()
   real(r8), pointer :: Sa_u10m(:)           => null()
   real(r8), pointer :: Sa_v10m(:)           => null()
+  real(r8), pointer :: Sa_u(:)              => null()
+  real(r8), pointer :: Sa_v(:)              => null()
+  real(r8), pointer :: Sa_tbot(:)           => null()
   real(r8), pointer :: Sa_wspd10m(:)        => null()
   real(r8), pointer :: Sa_t2m(:)            => null()
   real(r8), pointer :: Sa_tskn(:)           => null()
@@ -100,10 +103,13 @@ contains
 
     call dshr_fldList_add(fldsExport, trim(flds_scalar_name))
     call dshr_fldList_add(fldsExport, 'Sa_z'       )
+    call dshr_fldList_add(fldsExport, 'Sa_u'       )
+    call dshr_fldList_add(fldsExport, 'Sa_v'       )
     call dshr_fldList_add(fldsExport, 'Sa_u10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_v10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_wspd10m' )
     call dshr_fldList_add(fldsExport, 'Sa_t2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
     call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
@@ -202,9 +208,15 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_v10m'    , fldptr1=Sa_v10m    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_u'       , fldptr1=Sa_u       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_v'       , fldptr1=Sa_v       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_wspd10m' , fldptr1=Sa_wspd10m , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tskn    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -360,7 +372,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    logical  :: first_time = .true.
+    logical, save  :: first_time = .true.
     integer  :: n                   ! indices
     integer  :: lsize               ! size of attr vect
     real(r8) :: rtmp(2)
@@ -373,11 +385,18 @@ contains
     rc = ESMF_SUCCESS
 
     lsize = size(strm_Sa_tdew)
+    if (associated(Sa_u10m)) Sa_u10m(:) = strm_Sa_u10m(:)
+    if (associated(Sa_v10m)) Sa_v10m(:) = strm_Sa_v10m(:)
+    if (associated(Sa_u))    Sa_u(:)    = strm_Sa_u10m(:)
+    if (associated(Sa_v))    Sa_v(:)    = strm_Sa_v10m(:)
+    if (associated(Sa_t2m))  Sa_t2m(:)  = strm_Sa_t2m(:)
+    if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
+    if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
+
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
        ! determine t2max (see below for use)
        if (associated(Sa_t2m)) then
-         Sa_t2m(:) = strm_Sa_t2m(:)
          rtmp(1) = maxval(Sa_t2m(:))
 
          call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
