@@ -29,6 +29,7 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_t2m(:)            => null()
   real(r8), pointer :: Sa_tskn(:)           => null()
   real(r8), pointer :: Sa_q2m(:)            => null()
+  real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
   real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
@@ -112,6 +113,7 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
     call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
     call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
@@ -222,6 +224,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_q2m'     , fldptr1=Sa_q2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_shum'    , fldptr1=Sa_shum    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
@@ -277,7 +281,7 @@ contains
        call shr_log_error(subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
        return
     end if
-    if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m) .and. .not. associated(strm_Sa_pslv)) then
+    if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. (associated(Sa_q2m) .or. associated(Sa_shum)) .and. .not. associated(strm_Sa_pslv)) then
        call shr_log_error(subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
        return
     end if
@@ -427,13 +431,14 @@ contains
        end if
 
        !--- specific humidity at 2m ---
-       if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m)) then
+       if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. (associated(Sa_q2m) .or. associated(Sa_shum))) then
          t2 = Sa_t2m(n)
          pslv = strm_Sa_pslv(n)
          if (td2max < 50.0_r8) strm_Sa_tdew(n) = strm_Sa_tdew(n) + tkFrz
          e = datm_eSat(strm_Sa_tdew(n), t2)
          qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
-         Sa_q2m(n) = qsat
+         if (associated(Sa_q2m)) Sa_q2m(n) = qsat
+         if (associated(Sa_shum)) Sa_shum(n) = qsat
        end if
     end do
 
