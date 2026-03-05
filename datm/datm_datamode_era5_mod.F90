@@ -436,8 +436,8 @@ contains
        end if
 
        !--- specific humidity at 2m ---
-       if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. (associated(Sa_q2m) .or. associated(Sa_shum))) then
-         t2 = Sa_t2m(n)
+       if (associated(Sa_pslv) .and. associated(strm_Sa_t2m) .and. (associated(Sa_q2m) .or. associated(Sa_shum))) then
+         t2 = strm_Sa_t2m(n)
          pslv = strm_Sa_pslv(n)
          tdew = strm_Sa_tdew(n)
          if (td2max < 50.0_r8) tdew = tdew + tkFrz
