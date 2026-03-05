@@ -31,6 +31,7 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_q2m(:)            => null()
   real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
+  real(r8), pointer :: Sa_pbot(:)           => null()
   real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
   real(r8), pointer :: Faxa_rainl(:)        => null()
@@ -115,6 +116,7 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
     call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
+    call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
     call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
@@ -227,6 +229,8 @@ contains
     call dshr_state_getfldptr(exportState, 'Sa_shum'    , fldptr1=Sa_shum    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_pbot'    , fldptr1=Sa_pbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -396,6 +400,7 @@ contains
     if (associated(Sa_t2m))  Sa_t2m(:)  = strm_Sa_t2m(:)
     if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
     if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
+    if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
 
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
