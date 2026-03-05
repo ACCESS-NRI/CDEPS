@@ -384,7 +384,7 @@ contains
     integer  :: n                   ! indices
     integer  :: lsize               ! size of attr vect
     real(r8) :: rtmp(2)
-    real(r8) :: t2, pslv
+    real(r8) :: t2, pslv, tdew
     real(r8) :: e, qsat
     type(ESMF_VM) :: vm
     character(len=*), parameter :: subname='(datm_datamode_era5_advance): '
@@ -439,8 +439,9 @@ contains
        if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. (associated(Sa_q2m) .or. associated(Sa_shum))) then
          t2 = Sa_t2m(n)
          pslv = strm_Sa_pslv(n)
-         if (td2max < 50.0_r8) strm_Sa_tdew(n) = strm_Sa_tdew(n) + tkFrz
-         e = datm_eSat(strm_Sa_tdew(n), t2)
+         tdew = strm_Sa_tdew(n)
+         if (td2max < 50.0_r8) tdew = tdew + tkFrz
+         e = datm_eSat(tdew, t2)
          qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
          if (associated(Sa_q2m)) Sa_q2m(n) = qsat
          if (associated(Sa_shum)) Sa_shum(n) = qsat
