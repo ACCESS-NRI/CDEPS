@@ -25,6 +25,8 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_u(:)              => null()
   real(r8), pointer :: Sa_v(:)              => null()
   real(r8), pointer :: Sa_tbot(:)           => null()
+  real(r8), pointer :: Sa_ptem(:)           => null()
+  real(r8), pointer :: Sa_dens(:)           => null()
   real(r8), pointer :: Sa_wspd10m(:)        => null()
   real(r8), pointer :: Sa_t2m(:)            => null()
   real(r8), pointer :: Sa_tskn(:)           => null()
@@ -112,6 +114,8 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_wspd10m' )
     call dshr_fldList_add(fldsExport, 'Sa_t2m'     )
     call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
+    call dshr_fldList_add(fldsExport, 'Sa_ptem'    )
+    call dshr_fldList_add(fldsExport, 'Sa_dens'    )
     call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
     call dshr_fldList_add(fldsExport, 'Sa_shum'    )
@@ -221,6 +225,10 @@ contains
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_ptem'    , fldptr1=Sa_ptem    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_dens'    , fldptr1=Sa_dens    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tskn    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -401,6 +409,7 @@ contains
     if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
     if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
     if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
+    if (associated(Sa_ptem)) Sa_ptem(:) = strm_Sa_t2m(:)
 
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
@@ -445,6 +454,12 @@ contains
          qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
          if (associated(Sa_q2m)) Sa_q2m(n) = qsat
          if (associated(Sa_shum)) Sa_shum(n) = qsat
+       end if
+       ! --- Air density at 2m ---
+       if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_shum)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_shum(n)))
+       else if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_q2m)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_q2m(n)))
        end if
     end do
 
