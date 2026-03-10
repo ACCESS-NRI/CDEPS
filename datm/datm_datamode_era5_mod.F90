@@ -58,7 +58,6 @@ module datm_datamode_era5_mod
   real(r8), pointer :: strm_Sa_u10m(:)    => null()
   real(r8), pointer :: strm_Sa_v10m(:)    => null()
   real(r8), pointer :: strm_Sa_pslv(:)    => null()
-  real(r8), pointer :: strm_Sa_dens(:)    => null()
   real(r8), pointer :: strm_Faxa_swdn(:)  => null()
   real(r8), pointer :: strm_Faxa_swvdr(:) => null()
   real(r8), pointer :: strm_Faxa_swndr(:) => null()
@@ -174,8 +173,6 @@ contains
     call shr_strdata_get_stream_pointer(sdat, 'Sa_v10m', strm_Sa_v10m, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Sa_pslv', strm_Sa_pslv, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Sa_dens', strm_Sa_dens, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_swdn', strm_Faxa_swdn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -296,10 +293,6 @@ contains
        call shr_log_error(subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
        return
     end if
-   if (associated(Sa_dens) .and. .not. associated(strm_Sa_dens)) then
-       call shr_log_error(subname//'ERROR: strm_Sa_dens must be associated for era5 datamode', rc=rc)
-       return
-    end if
     if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. (associated(Sa_q2m) .or. associated(Sa_shum)) .and. .not. associated(strm_Sa_pslv)) then
        call shr_log_error(subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
        return
@@ -417,7 +410,6 @@ contains
     if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
     if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
     if (associated(Sa_ptem)) Sa_ptem(:) = strm_Sa_t2m(:)
-    if (associated(Sa_ptem)) Sa_dens(:) = strm_Sa_dens(:)
 
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
@@ -462,6 +454,12 @@ contains
          qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
          if (associated(Sa_q2m)) Sa_q2m(n) = qsat
          if (associated(Sa_shum)) Sa_shum(n) = qsat
+       end if
+       ! --- Air density at 2m ---
+       if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_shum)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_shum(n)))
+       else if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_q2m)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_q2m(n)))
        end if
     end do
 
