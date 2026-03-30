@@ -33,7 +33,6 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
   real(r8), pointer :: Sa_pbot(:)           => null()
-  real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
   real(r8), pointer :: Faxa_rainl(:)        => null()
   real(r8), pointer :: Faxa_snowc(:)        => null()
@@ -61,7 +60,6 @@ module datm_datamode_era5_mod
   real(r8), pointer :: strm_Faxa_swndf(:) => null()
   real(r8), pointer :: strm_Faxa_swnet(:) => null()
   real(r8), pointer :: strm_Faxa_lwdn(:)  => null()
-  real(r8), pointer :: strm_Faxa_rain(:)  => null()
   real(r8), pointer :: strm_Faxa_rainc(:) => null()
   real(r8), pointer :: strm_Faxa_rainl(:) => null()
   real(r8), pointer :: strm_Faxa_snowc(:) => null()
@@ -113,7 +111,6 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
     call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
-    call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
     call dshr_fldList_add(fldsExport, 'Faxa_snowc' )
@@ -195,9 +192,6 @@ contains
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_lat must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_rain', strm_Faxa_rain, requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_rain must be associated for era5 datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_rainc', strm_Faxa_rainc, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_rainc must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -239,8 +233,6 @@ contains
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pbot'    , fldptr1=Sa_pbot    , allowNullReturn=.true., rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rainc' , fldptr1=Faxa_rainc , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -284,7 +276,7 @@ contains
     integer                , intent(out)   :: rc
 
     ! local variables
-    logical, save  :: first_time = .true.
+    logical  :: first_time = .true.
     integer  :: n                   ! indices
     integer  :: lsize               ! size of attr vect
     real(r8) :: rtmp(2)
@@ -397,7 +389,6 @@ contains
     if (associated(Faxa_lat))   Faxa_lat(:)   = strm_Faxa_lat(:)/3600.0_r8
 
     ! convert m to kg/m^2/s
-    if (associated(Faxa_rain))  Faxa_rain(:)  = strm_Faxa_rain(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainc)) Faxa_rainc(:) = strm_Faxa_rainc(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainl)) Faxa_rainl(:) = strm_Faxa_rainl(:)/3600.0_r8*rhofw
     if (associated(Faxa_snowc)) Faxa_snowc(:) = strm_Faxa_snowc(:)/3600.0_r8*rhofw
