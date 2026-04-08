@@ -122,8 +122,10 @@ contains
     call dshr_fldList_add(fldsExport, 'Faxa_swdn'  )
     call dshr_fldList_add(fldsExport, 'Faxa_swnet' )
     call dshr_fldList_add(fldsExport, 'Faxa_lwdn'  )
-    call dshr_fldList_add(fldsExport, 'Faxa_sen'   )
-    call dshr_fldList_add(fldsExport, 'Faxa_lat'   )
+    ! it should be ok to advertise these when they aren't used, see 
+    ! https://github.com/ESCOMP/CMEPS/issues/644
+    ! call dshr_fldList_add(fldsExport, 'Faxa_sen'   ) 
+    ! call dshr_fldList_add(fldsExport, 'Faxa_lat'   )
 
     fldlist => fldsExport ! the head of the linked list
     do while (associated(fldlist))
@@ -186,10 +188,10 @@ contains
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_lwdn', strm_Faxa_lwdn, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_lwdn must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_sen', strm_Faxa_sen, requirePointer=.true., &
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_sen', strm_Faxa_sen, requirePointer=.false., &
          errmsg=subname//'ERROR: strm_Faxa_sen must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, requirePointer=.true., &
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, requirePointer=.false., &
          errmsg=subname//'ERROR: strm_Faxa_lat must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_rainc', strm_Faxa_rainc, requirePointer=.true., &
@@ -310,12 +312,14 @@ contains
          if (mainproc) write(logunit,*) subname,' t2max = ',t2max
        end if
 
-       ! determine tdewmax (see below for use)
-       rtmp(1) = maxval(strm_Sa_tdew(:))
-       call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
-       td2max = rtmp(2)
+       if (associated(Sa_pslv) .and. associated(strm_Sa_t2m) .and. (associated(Sa_q2m) .or. associated(Sa_shum))) then
+          ! determine tdewmax (see below for use)
+          rtmp(1) = maxval(strm_Sa_tdew(:))
+          call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
+          td2max = rtmp(2)
 
-       if (mainproc) write(logunit,*) subname,' td2max = ',td2max
+          if (mainproc) write(logunit,*) subname,' td2max = ',td2max
+       endif
 
        ! reset first_time
        first_time = .false.
