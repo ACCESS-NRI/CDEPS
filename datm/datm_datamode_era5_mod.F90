@@ -29,10 +29,12 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_dens(:)           => null()
   real(r8), pointer :: Sa_wspd10m(:)        => null()
   real(r8), pointer :: Sa_t2m(:)            => null()
+  real(r8), pointer :: Sa_tskn(:)           => null()
   real(r8), pointer :: Sa_q2m(:)            => null()
   real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
   real(r8), pointer :: Sa_pbot(:)           => null()
+  real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
   real(r8), pointer :: Faxa_rainl(:)        => null()
   real(r8), pointer :: Faxa_snowc(:)        => null()
@@ -44,12 +46,16 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Faxa_swdn(:)         => null()
   real(r8), pointer :: Faxa_swnet(:)        => null()
   real(r8), pointer :: Faxa_lwdn(:)         => null()
+  real(r8), pointer :: Faxa_lwnet(:)        => null()
   real(r8), pointer :: Faxa_sen(:)          => null()
   real(r8), pointer :: Faxa_lat(:)          => null()
+  real(r8), pointer :: Faxa_taux(:)         => null()
+  real(r8), pointer :: Faxa_tauy(:)         => null()
 
   ! stream data
   real(r8), pointer :: strm_Sa_tdew(:)    => null()
   real(r8), pointer :: strm_Sa_t2m(:)     => null()
+  real(r8), pointer :: strm_Sa_tskn(:)     => null()
   real(r8), pointer :: strm_Sa_u10m(:)    => null()
   real(r8), pointer :: strm_Sa_v10m(:)    => null()
   real(r8), pointer :: strm_Sa_pslv(:)    => null()
@@ -60,12 +66,16 @@ module datm_datamode_era5_mod
   real(r8), pointer :: strm_Faxa_swndf(:) => null()
   real(r8), pointer :: strm_Faxa_swnet(:) => null()
   real(r8), pointer :: strm_Faxa_lwdn(:)  => null()
+  real(r8), pointer :: strm_Faxa_lwnet(:) => null()
+  real(r8), pointer :: strm_Faxa_rain(:)  => null()
   real(r8), pointer :: strm_Faxa_rainc(:) => null()
   real(r8), pointer :: strm_Faxa_rainl(:) => null()
   real(r8), pointer :: strm_Faxa_snowc(:) => null()
   real(r8), pointer :: strm_Faxa_snowl(:) => null()
   real(r8), pointer :: strm_Faxa_sen(:)   => null()
   real(r8), pointer :: strm_Faxa_lat(:)   => null()
+  real(r8), pointer :: strm_Faxa_taux(:)  => null()
+  real(r8), pointer :: strm_Faxa_tauy(:)  => null()
 
   real(r8) :: t2max  ! units detector
   real(r8) :: td2max ! units detector
@@ -104,6 +114,7 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_v10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_wspd10m' )
     call dshr_fldList_add(fldsExport, 'Sa_t2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
     call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
     call dshr_fldList_add(fldsExport, 'Sa_ptem'    )
     call dshr_fldList_add(fldsExport, 'Sa_dens'    )
@@ -111,6 +122,7 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
     call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
+    ! call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
     call dshr_fldList_add(fldsExport, 'Faxa_snowc' )
@@ -122,10 +134,13 @@ contains
     call dshr_fldList_add(fldsExport, 'Faxa_swdn'  )
     call dshr_fldList_add(fldsExport, 'Faxa_swnet' )
     call dshr_fldList_add(fldsExport, 'Faxa_lwdn'  )
+    call dshr_fldList_add(fldsExport, 'Faxa_lwnet' )
     ! it should be ok to advertise these when they aren't used, see 
     ! https://github.com/ESCOMP/CMEPS/issues/644
     ! call dshr_fldList_add(fldsExport, 'Faxa_sen'   ) 
     ! call dshr_fldList_add(fldsExport, 'Faxa_lat'   )
+    call dshr_fldList_add(fldsExport, 'Faxa_taux'  )
+    call dshr_fldList_add(fldsExport, 'Faxa_tauy'  )
 
     fldlist => fldsExport ! the head of the linked list
     do while (associated(fldlist))
@@ -188,11 +203,11 @@ contains
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_lwdn', strm_Faxa_lwdn, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_lwdn must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_sen', strm_Faxa_sen, requirePointer=.false., &
-         errmsg=subname//'ERROR: strm_Faxa_sen must be associated for era5 datamode', rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_sen', strm_Faxa_sen, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, requirePointer=.false., &
-         errmsg=subname//'ERROR: strm_Faxa_lat must be associated for era5 datamode', rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_rain', strm_Faxa_rain, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_rainc', strm_Faxa_rainc, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_rainc must be associated for era5 datamode', rc=rc)
@@ -205,6 +220,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_snowl', strm_Faxa_snowl, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_snowl must be associated for era5 datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_taux', strm_Faxa_taux, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_tauy', strm_Faxa_tauy, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! get export state pointers
@@ -222,6 +241,8 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_ptem'    , fldptr1=Sa_ptem    , allowNullReturn=.true., rc=rc)
@@ -235,6 +256,8 @@ contains
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pbot'    , fldptr1=Sa_pbot    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rainc' , fldptr1=Faxa_rainc , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -258,11 +281,115 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_lwdn'  , fldptr1=Faxa_lwdn  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_lwnet' , fldptr1=Faxa_lwnet , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_sen'   , fldptr1=Faxa_sen   , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_lat'   , fldptr1=Faxa_lat   , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_taux'  , fldptr1=Faxa_taux  , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Faxa_tauy'  , fldptr1=Faxa_tauy  , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Error checks
+    if (.not. associated(strm_Sa_tdew)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_tdew must be associated for era5 datamode')
+       return
+    end if
+
+    if (associated(Sa_wspd10m) .and. .not. associated(strm_Sa_u10m)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_u10m must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Sa_wspd10m) .and. .not. associated(strm_Sa_v10m)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_v10m must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Sa_t2m) .and. .not. associated(strm_Sa_t2m)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m) .and. .not. associated(strm_Sa_pslv)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_swdn)) then
+       if (.not. associated(strm_Faxa_swdn)) then
+          call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
+          return
+       end if
+    end if
+    if ( associated(Faxa_swvdr) .or. associated(Faxa_swndr) .or. associated(Faxa_swvdf) .or. associated(Faxa_swndf)) then
+       if (.not. associated(strm_Faxa_swdn)) then
+          call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
+          return
+       end if
+    end if
+    if (associated(Faxa_swvdr) .and. .not. associated(strm_Faxa_swvdr)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swvdr must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_swndr) .and. .not. associated(strm_Faxa_swndr)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swndr must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_swvdf) .and. .not. associated(strm_Faxa_swvdf)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swvdf must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_swndf) .and. .not. associated(strm_Faxa_swndf)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swndf must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_lwdn) .and. .not. associated(strm_Faxa_lwdn)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_lwdn must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_lwnet) .and. .not. associated(strm_Faxa_lwnet)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_lwnet must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_swnet) .and. .not. associated(strm_Faxa_swnet)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swnet must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_sen) .and. .not. associated(strm_Faxa_sen)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_sen must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_lat) .and. .not. associated(strm_Faxa_lat)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_lat must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_rain) .and. .not. associated(strm_Faxa_rain)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_rain must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_rainc) .and. .not. associated(strm_Faxa_rainc)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_rainc must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_rainl) .and. .not. associated(strm_Faxa_rainl)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_rainl must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_snowc) .and. .not. associated(strm_Faxa_snowc)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_snowc must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_snowl) .and. .not. associated(strm_Faxa_snowl)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_snowl must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_taux) .and. .not. associated(strm_Faxa_taux)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_taux must be associated for era5 datamode', rc=rc)
+       return
+    end if
+    if (associated(Faxa_tauy) .and. .not. associated(strm_Faxa_tauy)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_tauy must be associated for era5 datamode', rc=rc)
+       return
+    end if
 
   end subroutine datm_datamode_era5_init_pointers
 
@@ -297,6 +424,7 @@ contains
     if (associated(Sa_v))    Sa_v(:)    = strm_Sa_v10m(:)
     if (associated(Sa_t2m))  Sa_t2m(:)  = strm_Sa_t2m(:)
     if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
+    if (associated(Sa_tskn)) Sa_tbot(:) = strm_Sa_tskn(:)
     if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
     if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
     if (associated(Sa_ptem)) Sa_ptem(:) = strm_Sa_t2m(:)
@@ -347,6 +475,7 @@ contains
          if (associated(Sa_q2m)) Sa_q2m(n) = qsat
          if (associated(Sa_shum)) Sa_shum(n) = qsat
        end if
+
        ! --- Air density at 2m ---
        if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_shum)) then
          Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_shum(n)))
@@ -383,6 +512,7 @@ contains
 
     ! convert J/m^2 to W/m^2
     if (associated(Faxa_lwdn))  Faxa_lwdn(:)  = strm_Faxa_lwdn(:)/3600.0_r8
+    if (associated(Faxa_lwnet)) Faxa_lwnet(:) = strm_Faxa_lwnet(:)/3600.0_r8
     if (associated(Faxa_swvdr)) Faxa_swvdr(:) = strm_Faxa_swvdr(:)/3600.0_r8
     if (associated(Faxa_swndr)) Faxa_swndr(:) = strm_Faxa_swndr(:)/3600.0_r8
     if (associated(Faxa_swvdf)) Faxa_swvdf(:) = strm_Faxa_swvdf(:)/3600.0_r8
@@ -393,12 +523,15 @@ contains
     if (associated(Faxa_lat))   Faxa_lat(:)   = strm_Faxa_lat(:)/3600.0_r8
 
     ! convert m to kg/m^2/s
+    if (associated(Faxa_rain))  Faxa_rain(:)  = strm_Faxa_rain(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainc)) Faxa_rainc(:) = strm_Faxa_rainc(:)/3600.0_r8*rhofw
     if (associated(Faxa_rainl)) Faxa_rainl(:) = strm_Faxa_rainl(:)/3600.0_r8*rhofw
     if (associated(Faxa_snowc)) Faxa_snowc(:) = strm_Faxa_snowc(:)/3600.0_r8*rhofw
     if (associated(Faxa_snowl)) Faxa_snowl(:) = strm_Faxa_snowl(:)/3600.0_r8*rhofw
 
     ! convert N/m^2 s to N/m^2
+    if (associated(Faxa_taux))  Faxa_taux(:)  = strm_Faxa_taux(:)/3600.0_r8
+    if (associated(Faxa_tauy))  Faxa_tauy(:)  = strm_Faxa_tauy(:)/3600.0_r8
 
   end subroutine datm_datamode_era5_advance
 
