@@ -173,6 +173,8 @@ contains
     call shr_strdata_get_stream_pointer(sdat, 'Sa_t2m', strm_Sa_t2m, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_tskn', strm_Sa_tskn, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Sa_u10m', strm_Sa_u10m, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Sa_u10m must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -241,7 +243,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
+    call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tskn    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -424,7 +426,7 @@ contains
     if (associated(Sa_v))    Sa_v(:)    = strm_Sa_v10m(:)
     if (associated(Sa_t2m))  Sa_t2m(:)  = strm_Sa_t2m(:)
     if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
-    if (associated(Sa_tskn)) Sa_tbot(:) = strm_Sa_tskn(:)
+    if (associated(Sa_tskn) .and. associated(strm_Sa_tskn)) Sa_tskn(:) = strm_Sa_tskn(:)
     if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
     if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
     if (associated(Sa_ptem)) Sa_ptem(:) = strm_Sa_t2m(:)
