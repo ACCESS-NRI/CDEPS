@@ -122,6 +122,9 @@ contains
     call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
     call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
+    ! For CESM, we need either Faxa_rain or (Faxa_rainc and Faxa_rainl)
+    ! to avoid connecting Faxa_rain and not using it, comment out for now
+    ! https://github.com/access-nri/cmeps/blob/89ec481edf87f4a4af9e0fb4cd739e874fe907c6/mediator/esmFldsExchange_cesm_mod.F90#L2725
     ! call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
@@ -316,11 +319,9 @@ contains
        call shr_log_error(subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
        return
     end if
-    if (associated(Faxa_swdn)) then
-       if (.not. associated(strm_Faxa_swdn)) then
-          call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
-          return
-       end if
+    if (associated(Faxa_swdn) .and. .not. associated(strm_Faxa_swdn)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
+       return
     end if
     if ( associated(Faxa_swvdr) .or. associated(Faxa_swndr) .or. associated(Faxa_swvdf) .or. associated(Faxa_swndf)) then
        if (.not. associated(strm_Faxa_swdn)) then
