@@ -22,11 +22,18 @@ module datm_datamode_era5_mod
   real(r8), pointer :: Sa_z(:)              => null()
   real(r8), pointer :: Sa_u10m(:)           => null()
   real(r8), pointer :: Sa_v10m(:)           => null()
+  real(r8), pointer :: Sa_u(:)              => null()
+  real(r8), pointer :: Sa_v(:)              => null()
+  real(r8), pointer :: Sa_tbot(:)           => null()
+  real(r8), pointer :: Sa_ptem(:)           => null()
+  real(r8), pointer :: Sa_dens(:)           => null()
   real(r8), pointer :: Sa_wspd10m(:)        => null()
   real(r8), pointer :: Sa_t2m(:)            => null()
   real(r8), pointer :: Sa_tskn(:)           => null()
   real(r8), pointer :: Sa_q2m(:)            => null()
+  real(r8), pointer :: Sa_shum(:)           => null()
   real(r8), pointer :: Sa_pslv(:)           => null()
+  real(r8), pointer :: Sa_pbot(:)           => null()
   real(r8), pointer :: Faxa_rain(:)         => null()
   real(r8), pointer :: Faxa_rainc(:)        => null()
   real(r8), pointer :: Faxa_rainl(:)        => null()
@@ -48,6 +55,7 @@ module datm_datamode_era5_mod
   ! stream data
   real(r8), pointer :: strm_Sa_tdew(:)    => null()
   real(r8), pointer :: strm_Sa_t2m(:)     => null()
+  real(r8), pointer :: strm_Sa_tskn(:)     => null()
   real(r8), pointer :: strm_Sa_u10m(:)    => null()
   real(r8), pointer :: strm_Sa_v10m(:)    => null()
   real(r8), pointer :: strm_Sa_pslv(:)    => null()
@@ -100,14 +108,24 @@ contains
 
     call dshr_fldList_add(fldsExport, trim(flds_scalar_name))
     call dshr_fldList_add(fldsExport, 'Sa_z'       )
+    call dshr_fldList_add(fldsExport, 'Sa_u'       )
+    call dshr_fldList_add(fldsExport, 'Sa_v'       )
     call dshr_fldList_add(fldsExport, 'Sa_u10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_v10m'    )
     call dshr_fldList_add(fldsExport, 'Sa_wspd10m' )
     call dshr_fldList_add(fldsExport, 'Sa_t2m'     )
     call dshr_fldList_add(fldsExport, 'Sa_tskn'    )
+    call dshr_fldList_add(fldsExport, 'Sa_tbot'    )
+    call dshr_fldList_add(fldsExport, 'Sa_ptem'    )
+    call dshr_fldList_add(fldsExport, 'Sa_dens'    )
     call dshr_fldList_add(fldsExport, 'Sa_q2m'     )
+    call dshr_fldList_add(fldsExport, 'Sa_shum'    )
     call dshr_fldList_add(fldsExport, 'Sa_pslv'    )
-    call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
+    call dshr_fldList_add(fldsExport, 'Sa_pbot'    )
+    ! For CESM, we need either Faxa_rain or (Faxa_rainc and Faxa_rainl)
+    ! to avoid connecting Faxa_rain and not using it, comment out for now
+    ! https://github.com/access-nri/cmeps/blob/89ec481edf87f4a4af9e0fb4cd739e874fe907c6/mediator/esmFldsExchange_cesm_mod.F90#L2725
+    ! call dshr_fldList_add(fldsExport, 'Faxa_rain'  )
     call dshr_fldList_add(fldsExport, 'Faxa_rainc' )
     call dshr_fldList_add(fldsExport, 'Faxa_rainl' )
     call dshr_fldList_add(fldsExport, 'Faxa_snowc' )
@@ -120,8 +138,10 @@ contains
     call dshr_fldList_add(fldsExport, 'Faxa_swnet' )
     call dshr_fldList_add(fldsExport, 'Faxa_lwdn'  )
     call dshr_fldList_add(fldsExport, 'Faxa_lwnet' )
-    call dshr_fldList_add(fldsExport, 'Faxa_sen'   )
-    call dshr_fldList_add(fldsExport, 'Faxa_lat'   )
+    ! it should be ok to advertise these when they aren't used, see 
+    ! https://github.com/ESCOMP/CMEPS/issues/644
+    ! call dshr_fldList_add(fldsExport, 'Faxa_sen'   ) 
+    ! call dshr_fldList_add(fldsExport, 'Faxa_lat'   )
     call dshr_fldList_add(fldsExport, 'Faxa_taux'  )
     call dshr_fldList_add(fldsExport, 'Faxa_tauy'  )
 
@@ -150,35 +170,61 @@ contains
     rc = ESMF_SUCCESS
 
     ! initialize pointers for module level stream arrays
-    call shr_strdata_get_stream_pointer( sdat,'Sa_tdew', strm_Sa_tdew , rc=rc)
+    call shr_strdata_get_stream_pointer( sdat, 'Sa_tdew', strm_Sa_tdew, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_tdew must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Sa_t2m' , strm_Sa_t2m , rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_t2m', strm_Sa_t2m, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Sa_u10m', strm_Sa_u10m, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_tskn', strm_Sa_tskn, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Sa_v10m', strm_Sa_v10m, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_u10m', strm_Sa_u10m, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_u10m must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Sa_pslv', strm_Sa_pslv, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_v10m', strm_Sa_v10m, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_v10m must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swdn', strm_Faxa_swdn, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Sa_pslv', strm_Sa_pslv, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdr', strm_Faxa_swvdr, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swdn', strm_Faxa_swdn, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndr', strm_Faxa_swndr, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdr', strm_Faxa_swvdr, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swvdr must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdf', strm_Faxa_swvdf, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndr', strm_Faxa_swndr, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swndr must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndf', strm_Faxa_swndf, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdf', strm_Faxa_swvdf, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swvdf must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swnet', strm_Faxa_swnet, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndf', strm_Faxa_swndf, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swndf must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lwdn', strm_Faxa_lwdn, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swnet', strm_Faxa_swnet, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_swnet must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lwnet', strm_Faxa_lwnet, rc=rc)
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_lwdn', strm_Faxa_lwdn, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_lwdn must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_sen', strm_Faxa_sen, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_lat', strm_Faxa_lat, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_rain', strm_Faxa_rain, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_rainc', strm_Faxa_rainc, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_rainc must be associated for era5 datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_rainl', strm_Faxa_rainl, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_rainl must be associated for era5 datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_snowc', strm_Faxa_snowc, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_snowc must be associated for era5 datamode', rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call shr_strdata_get_stream_pointer(sdat, 'Faxa_snowl', strm_Faxa_snowl, requirePointer=.true., &
+         errmsg=subname//'ERROR: strm_Faxa_snowl must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_taux', strm_Faxa_taux, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -192,15 +238,29 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_v10m'    , fldptr1=Sa_v10m    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_u'       , fldptr1=Sa_u       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_v'       , fldptr1=Sa_v       , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_wspd10m' , fldptr1=Sa_wspd10m , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_t2m'     , fldptr1=Sa_t2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_tskn'    , fldptr1=Sa_tskn    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_tbot'    , fldptr1=Sa_tbot    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_ptem'    , fldptr1=Sa_ptem    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_dens'    , fldptr1=Sa_dens    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_q2m'     , fldptr1=Sa_q2m     , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_shum'    , fldptr1=Sa_shum    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Sa_pslv'    , fldptr1=Sa_pslv    , allowNullReturn=.true., rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call dshr_state_getfldptr(exportState, 'Sa_pbot'    , fldptr1=Sa_pbot    , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Faxa_rain'  , fldptr1=Faxa_rain  , allowNullReturn=.true., rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -255,15 +315,17 @@ contains
        call shr_log_error(subname//'ERROR: strm_Sa_t2m must be associated for era5 datamode', rc=rc)
        return
     end if
+    if (associated(Sa_tskn) .and. .not. associated(strm_Sa_tskn)) then
+       call shr_log_error(subname//'ERROR: strm_Sa_tskn must be associated for era5 datamode', rc=rc)
+       return
+    end if
     if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m) .and. .not. associated(strm_Sa_pslv)) then
        call shr_log_error(subname//'ERROR: strm_Sa_pslv must be associated for era5 datamode', rc=rc)
        return
     end if
-    if (associated(Faxa_swdn)) then
-       if (.not. associated(strm_Faxa_swdn)) then
-          call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
-          return
-       end if
+    if (associated(Faxa_swdn) .and. .not. associated(strm_Faxa_swdn)) then
+       call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
+       return
     end if
     if ( associated(Faxa_swvdr) .or. associated(Faxa_swndr) .or. associated(Faxa_swvdf) .or. associated(Faxa_swndf)) then
        if (.not. associated(strm_Faxa_swdn)) then
@@ -354,7 +416,7 @@ contains
     integer  :: n                   ! indices
     integer  :: lsize               ! size of attr vect
     real(r8) :: rtmp(2)
-    real(r8) :: t2, pslv
+    real(r8) :: t2, pslv, tdew
     real(r8) :: e, qsat
     type(ESMF_VM) :: vm
     character(len=*), parameter :: subname='(datm_datamode_era5_advance): '
@@ -363,11 +425,21 @@ contains
     rc = ESMF_SUCCESS
 
     lsize = size(strm_Sa_tdew)
+    if (associated(Sa_u10m)) Sa_u10m(:) = strm_Sa_u10m(:)
+    if (associated(Sa_v10m)) Sa_v10m(:) = strm_Sa_v10m(:)
+    if (associated(Sa_u))    Sa_u(:)    = strm_Sa_u10m(:)
+    if (associated(Sa_v))    Sa_v(:)    = strm_Sa_v10m(:)
+    if (associated(Sa_t2m))  Sa_t2m(:)  = strm_Sa_t2m(:)
+    if (associated(Sa_tbot)) Sa_tbot(:) = strm_Sa_t2m(:)
+    if (associated(Sa_tskn)) Sa_tskn(:) = strm_Sa_tskn(:)
+    if (associated(Sa_pslv)) Sa_pslv(:) = strm_Sa_pslv(:)
+    if (associated(Sa_pbot)) Sa_pbot(:) = strm_Sa_pslv(:)
+    if (associated(Sa_ptem)) Sa_ptem(:) = strm_Sa_t2m(:)
+
     if (first_time) then
        call ESMF_VMGetCurrent(vm, rc=rc)
        ! determine t2max (see below for use)
        if (associated(Sa_t2m)) then
-         Sa_t2m(:) = strm_Sa_t2m(:)
          rtmp(1) = maxval(Sa_t2m(:))
 
          call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
@@ -375,12 +447,14 @@ contains
          if (mainproc) write(logunit,*) subname,' t2max = ',t2max
        end if
 
-       ! determine tdewmax (see below for use)
-       rtmp(1) = maxval(strm_Sa_tdew(:))
-       call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
-       td2max = rtmp(2)
+       if (associated(Sa_q2m) .or. associated(Sa_shum)) then
+          ! determine tdewmax (see below for use)
+          rtmp(1) = maxval(strm_Sa_tdew(:))
+          call ESMF_VMAllReduce(vm, rtmp, rtmp(2:), 1, ESMF_REDUCE_MAX, rc=rc)
+          td2max = rtmp(2)
 
-       if (mainproc) write(logunit,*) subname,' td2max = ',td2max
+          if (mainproc) write(logunit,*) subname,' td2max = ',td2max
+       endif
 
        ! reset first_time
        first_time = .false.
@@ -398,13 +472,22 @@ contains
        end if
 
        !--- specific humidity at 2m ---
-       if (associated(Sa_t2m) .and. associated(Sa_pslv) .and. associated(Sa_q2m)) then
-         t2 = Sa_t2m(n)
+       if (associated(Sa_q2m) .or. associated(Sa_shum)) then
+         t2 = strm_Sa_t2m(n)
          pslv = strm_Sa_pslv(n)
-         if (td2max < 50.0_r8) strm_Sa_tdew(n) = strm_Sa_tdew(n) + tkFrz
-         e = datm_eSat(strm_Sa_tdew(n), t2)
+         tdew = strm_Sa_tdew(n)
+         if (td2max < 50.0_r8) tdew = tdew + tkFrz
+         e = datm_eSat(tdew, t2)
          qsat = (0.622_r8 * e)/(pslv - 0.378_r8 * e)
-         Sa_q2m(n) = qsat
+         if (associated(Sa_q2m)) Sa_q2m(n) = qsat
+         if (associated(Sa_shum)) Sa_shum(n) = qsat
+       end if
+
+       ! --- Air density at 2m ---
+       if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_shum)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_shum(n)))
+       else if (associated(Sa_dens) .and. associated(Sa_pbot) .and. associated(Sa_tbot) .and. associated(Sa_q2m)) then
+         Sa_dens(n) = Sa_pbot(n)/(rdair*Sa_tbot(n)*(1.0_r8 + 0.608_r8*Sa_q2m(n)))
        end if
     end do
 
