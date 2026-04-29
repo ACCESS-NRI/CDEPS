@@ -79,6 +79,7 @@ module dshr_stream_mod
 
   ! valid values for mapping interpolation
   character(len=CS),parameter,public :: shr_stream_mapalgo_bilinear = 'bilinear'
+  character(len=CS),parameter,public :: shr_stream_mapalgo_patch    = 'patch'
   character(len=CS),parameter,public :: shr_stream_mapalgo_redist   = 'redist'
   character(len=CS),parameter,public :: shr_stream_mapalgo_nn       = 'nn'
   character(len=CS),parameter,public :: shr_stream_mapalgo_consf    = 'consf'
@@ -245,14 +246,16 @@ contains
           if (associated(p)) then
              call extractDataContent(p, streamdat(i)%mapalgo)
              if (streamdat(i)%mapalgo /= shr_stream_mapalgo_bilinear .and. &
+                 streamdat(i)%mapalgo /= shr_stream_mapalgo_patch    .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_redist   .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_nn       .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_consf    .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_consd    .and. &
                  streamdat(i)%mapalgo(1:8) /= shr_stream_mapalgo_mapfile .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_none) then
-                call shr_log_error("mapaglo must have a value of either bilinear, redist, nn, consf, consd or "//&
-                     " mapalgo(1:8) must equal mapfile: ", rc=rc)
+                call shr_log_error("mapaglo must have a value of either bilinear, "//&
+                     "patch, redist, nn, consf, consd or "//&
+                     "mapalgo(1:8) must equal mapfile", rc=rc)
                 return
              end if
           endif
