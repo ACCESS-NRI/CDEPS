@@ -253,7 +253,7 @@ contains
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_consd    .and. &
                  streamdat(i)%mapalgo(1:8) /= shr_stream_mapalgo_mapfile .and. &
                  streamdat(i)%mapalgo /= shr_stream_mapalgo_none) then
-                call shr_log_error("mapaglo must have a value of either bilinear, "//&
+                call shr_log_error("mapalgo must have a value of either bilinear, "//&
                      "patch, redist, nn, consf, consd or "//&
                      "mapalgo(1:8) must equal mapfile", rc=rc)
                 return
