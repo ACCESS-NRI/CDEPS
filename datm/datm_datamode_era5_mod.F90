@@ -60,10 +60,6 @@ module datm_datamode_era5_mod
   real(r8), pointer :: strm_Sa_v10m(:)    => null()
   real(r8), pointer :: strm_Sa_pslv(:)    => null()
   real(r8), pointer :: strm_Faxa_swdn(:)  => null()
-  real(r8), pointer :: strm_Faxa_swvdr(:) => null()
-  real(r8), pointer :: strm_Faxa_swndr(:) => null()
-  real(r8), pointer :: strm_Faxa_swvdf(:) => null()
-  real(r8), pointer :: strm_Faxa_swndf(:) => null()
   real(r8), pointer :: strm_Faxa_swnet(:) => null()
   real(r8), pointer :: strm_Faxa_lwdn(:)  => null()
   real(r8), pointer :: strm_Faxa_lwnet(:) => null()
@@ -189,18 +185,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_swdn', strm_Faxa_swdn, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdr', strm_Faxa_swvdr, requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_swvdr must be associated for era5 datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndr', strm_Faxa_swndr, requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_swndr must be associated for era5 datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swvdf', strm_Faxa_swvdf, requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_swvdf must be associated for era5 datamode', rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call shr_strdata_get_stream_pointer(sdat, 'Faxa_swndf', strm_Faxa_swndf, requirePointer=.true., &
-         errmsg=subname//'ERROR: strm_Faxa_swndf must be associated for era5 datamode', rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call shr_strdata_get_stream_pointer(sdat, 'Faxa_swnet', strm_Faxa_swnet, requirePointer=.true., &
          errmsg=subname//'ERROR: strm_Faxa_swnet must be associated for era5 datamode', rc=rc)
@@ -332,22 +316,6 @@ contains
           call shr_log_error(subname//'ERROR: strm_Faxa_swdn must be associated for era5 datamode', rc=rc)
           return
        end if
-    end if
-    if (associated(Faxa_swvdr) .and. .not. associated(strm_Faxa_swvdr)) then
-       call shr_log_error(subname//'ERROR: strm_Faxa_swvdr must be associated for era5 datamode', rc=rc)
-       return
-    end if
-    if (associated(Faxa_swndr) .and. .not. associated(strm_Faxa_swndr)) then
-       call shr_log_error(subname//'ERROR: strm_Faxa_swndr must be associated for era5 datamode', rc=rc)
-       return
-    end if
-    if (associated(Faxa_swvdf) .and. .not. associated(strm_Faxa_swvdf)) then
-       call shr_log_error(subname//'ERROR: strm_Faxa_swvdf must be associated for era5 datamode', rc=rc)
-       return
-    end if
-    if (associated(Faxa_swndf) .and. .not. associated(strm_Faxa_swndf)) then
-       call shr_log_error(subname//'ERROR: strm_Faxa_swndf must be associated for era5 datamode', rc=rc)
-       return
     end if
     if (associated(Faxa_lwdn) .and. .not. associated(strm_Faxa_lwdn)) then
        call shr_log_error(subname//'ERROR: strm_Faxa_lwdn must be associated for era5 datamode', rc=rc)
@@ -492,42 +460,31 @@ contains
     end do
 
     !----------------------------------------------------------
-    ! shortwave bands
-    !----------------------------------------------------------
-
-    !--- shortwave radiation (Faxa_* basically holds albedo) ---
-    !--- see comments for Faxa_swnet
-    if (associated(Faxa_swvdr)) Faxa_swvdr(:) = strm_Faxa_swdn(:)*strm_Faxa_swvdr(:)
-    if (associated(Faxa_swndr)) Faxa_swndr(:) = strm_Faxa_swdn(:)*strm_Faxa_swndr(:)
-    if (associated(Faxa_swvdf)) Faxa_swvdf(:) = strm_Faxa_swdn(:)*strm_Faxa_swvdf(:)
-    if (associated(Faxa_swndf)) Faxa_swndf(:) = strm_Faxa_swdn(:)*strm_Faxa_swndf(:)
-
-    !--- TODO: need to understand relationship between shortwave bands and
-    !--- net shortwave rad. currently it is provided directly from ERA5
-    !--- and the total of the bands are not consistent with the swnet
-    !--- swnet: a diagnostic quantity ---
-    !if (associated(Faxa_swnet)) then
-    !  if (associated(Faxa_swndr) .and. associated(Faxa_swvdr) .and. &
-    !      associated(Faxa_swndf) .and. associated(Faxa_swvdf)) then
-    !    Faxa_swnet(:) = Faxa_swndr(:) + Faxa_swvdr(:) + Faxa_swndf(:) + Faxa_swvdf(:)
-    !  end if
-    !end if
-
-    !----------------------------------------------------------
     ! unit conversions (temporal resolution is hourly)
     !----------------------------------------------------------
 
     ! convert J/m^2 to W/m^2
     if (associated(Faxa_lwdn))  Faxa_lwdn(:)  = strm_Faxa_lwdn(:)/3600.0_r8
     if (associated(Faxa_lwnet)) Faxa_lwnet(:) = strm_Faxa_lwnet(:)/3600.0_r8
-    if (associated(Faxa_swvdr)) Faxa_swvdr(:) = strm_Faxa_swvdr(:)/3600.0_r8
-    if (associated(Faxa_swndr)) Faxa_swndr(:) = strm_Faxa_swndr(:)/3600.0_r8
-    if (associated(Faxa_swvdf)) Faxa_swvdf(:) = strm_Faxa_swvdf(:)/3600.0_r8
-    if (associated(Faxa_swndf)) Faxa_swndf(:) = strm_Faxa_swndf(:)/3600.0_r8
     if (associated(Faxa_swdn))  Faxa_swdn(:)  = strm_Faxa_swdn(:)/3600.0_r8
     if (associated(Faxa_swnet)) Faxa_swnet(:) = strm_Faxa_swnet(:)/3600.0_r8
     if (associated(Faxa_sen))   Faxa_sen(:)   = strm_Faxa_sen(:)/3600.0_r8
     if (associated(Faxa_lat))   Faxa_lat(:)   = strm_Faxa_lat(:)/3600.0_r8
+
+    !----------------------------------------------------------
+    ! shortwave bands
+    !----------------------------------------------------------
+
+    ! ERA5 aluvp/aluvd/alnip/alnid are albedo-like fractions, not
+    ! shortwave radiation accumulations. They should not be converted
+    ! with /3600 and exported as fluxes. Use fixed physical partitions of
+    ! ssrd_flux, consistent with the JRA55do data mode:
+    ! https://github.com/ACCESS-NRI/CDEPS/blob/1e607031c45a6d8e5f201c63759c79ea96c42b2c/datm/datm_datamode_jra_mod.F90#L310-L314
+
+    if (associated(Faxa_swvdr)) Faxa_swvdr(:) = strm_Faxa_swdn(:)/3600.0_r8 * 0.28_r8
+    if (associated(Faxa_swndr)) Faxa_swndr(:) = strm_Faxa_swdn(:)/3600.0_r8 * 0.31_r8
+    if (associated(Faxa_swvdf)) Faxa_swvdf(:) = strm_Faxa_swdn(:)/3600.0_r8 * 0.24_r8
+    if (associated(Faxa_swndf)) Faxa_swndf(:) = strm_Faxa_swdn(:)/3600.0_r8 * 0.17_r8
 
     ! convert m to kg/m^2/s
     if (associated(Faxa_rain))  Faxa_rain(:)  = strm_Faxa_rain(:)/3600.0_r8*rhofw
