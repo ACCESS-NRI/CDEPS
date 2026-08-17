@@ -93,6 +93,12 @@ module cdeps_drof_comp
   logical                      :: rofi_scale_normalise = .false. ! true => rescale so the annual mean scale factor is 1
                                                               ! (365 day year), i.e. no change to the annual Forr_rofi
                                                               ! total for constant input
+  logical                      :: split_rofb = .false.        ! If true, split Forr_rofl into Forr_rofl/Forr_rofb using bounds below
+  real(r8)                     :: rofb_antarctic_lat_max = -60._r8  ! Lat south of which runoff is treated as Antarctic basal melt
+  real(r8)                     :: rofb_greenland_lat_min = 58._r8   ! Min latitude defining box around Greenland for which runoff is treated as basal melt
+  real(r8)                     :: rofb_greenland_lat_max = 85._r8   ! Max latitude defining box around Greenland for which runoff is treated as basal melt
+  real(r8)                     :: rofb_greenland_lon_min = -110._r8 ! Min longitude defining box around Greenland for which runoff is treated as basal melt [-180,180)
+  real(r8)                     :: rofb_greenland_lon_max = -10._r8  ! Max longitude defining box around Greenland for which runoff is treated as basal melt [-180,180)
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -182,13 +188,15 @@ contains
     integer           :: nu         ! unit number
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
-    integer           :: bcasttmp(5)
+    integer           :: bcasttmp(6)
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
-         rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise
+         rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise, &
+         split_rofb, rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
+         rofb_greenland_lon_min, rofb_greenland_lon_max
 
     rc = ESMF_SUCCESS
 
@@ -232,6 +240,12 @@ contains
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_sh     = ',rofi_scale_sh
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_nh     = ',rofi_scale_nh
        write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
+       write(logunit,'(2a,l6)') subname,' split_rofb             = ',split_rofb
+       write(logunit,'(2a,f10.3)') subname,' rofb_antarctic_lat_max = ',rofb_antarctic_lat_max
+       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_min = ',rofb_greenland_lat_min
+       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_max = ',rofb_greenland_lat_max
+       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_min = ',rofb_greenland_lon_min
+       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_max = ',rofb_greenland_lon_max
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -239,6 +253,7 @@ contains
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
        if (rofi_scale_normalise) bcasttmp(5) = 1
+       if (split_rofb) bcasttmp(6) = 1
     end if
 
     ! broadcast namelist input
@@ -253,11 +268,21 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, restfilm, CX, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, bcasttmp, 5, main_task, rc=rc)
+    call ESMF_VMBroadcast(vm, bcasttmp, 6, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rofi_scale_sh, 12, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rofi_scale_nh, 12, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofb_antarctic_lat_max, 1, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofb_greenland_lat_min, 1, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofb_greenland_lat_max, 1, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofb_greenland_lon_min, 1, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofb_greenland_lon_max, 1, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     nx_global = bcasttmp(1)
@@ -265,6 +290,7 @@ contains
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
     rofi_scale_normalise = (bcasttmp(5) == 1)
+    split_rofb = (bcasttmp(6) == 1)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -473,7 +499,9 @@ contains
        ! Initialize stream and export state pointers
        select case (trim(datamode))
        case('copyall')
-          call drof_datamode_copyall_init_pointers(exportState, sdat, rc)
+          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
+               rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
+               rofb_greenland_lon_min, rofb_greenland_lon_max, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        case('cplhist')
           call drof_datamode_cplhist_init_pointers(exportState, sdat, rc)
