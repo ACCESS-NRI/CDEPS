@@ -176,6 +176,7 @@ contains
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
     integer           :: bcasttmp(5)
+    real(r8)          :: rbcasttmp(5)
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -236,6 +237,12 @@ contains
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
        if (split_rofb) bcasttmp(5) = 1
+
+       rbcasttmp(1) = rofb_antarctic_lat_max
+       rbcasttmp(2) = rofb_greenland_lat_min
+       rbcasttmp(3) = rofb_greenland_lat_max
+       rbcasttmp(4) = rofb_greenland_lon_min
+       rbcasttmp(5) = rofb_greenland_lon_max
     end if
 
     ! broadcast namelist input
@@ -252,15 +259,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, bcasttmp, 5, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rofb_antarctic_lat_max, 1, main_task, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rofb_greenland_lat_min, 1, main_task, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rofb_greenland_lat_max, 1, main_task, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rofb_greenland_lon_min, 1, main_task, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rofb_greenland_lon_max, 1, main_task, rc=rc)
+    call ESMF_VMBroadcast(vm, rbcasttmp, 5, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     nx_global = bcasttmp(1)
@@ -268,6 +267,12 @@ contains
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
     split_rofb = (bcasttmp(5) == 1)
+
+    rofb_antarctic_lat_max = rbcasttmp(1)
+    rofb_greenland_lat_min = rbcasttmp(2)
+    rofb_greenland_lat_max = rbcasttmp(3)
+    rofb_greenland_lon_min = rbcasttmp(4)
+    rofb_greenland_lon_max = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
