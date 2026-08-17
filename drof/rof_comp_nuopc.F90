@@ -309,7 +309,7 @@ contains
     ! Advertise export fields
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, rc)
+       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofb, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case('cplhist')
        call drof_datamode_cplhist_advertise(exportState, fldsexport, flds_scalar_name, rc)
@@ -542,7 +542,7 @@ contains
        call drof_datamode_copyall_rofi_scale(rofi_scale_nh, target_ymd, target_tod, sdat%model_calendar, &
             logunit, scale_nh, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh)
+       call drof_datamode_copyall_advance(split_rofb, sdat%model_lat, scale_sh, scale_nh)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default

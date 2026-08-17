@@ -41,12 +41,13 @@ module drof_datamode_copyall_mod
 contains
 !===============================================================================
 
-  subroutine drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, rc)
+  subroutine drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofb, rc)
 
     ! input/output variables
     type(esmf_State)   , intent(inout) :: exportState
     type(fldlist_type) , pointer       :: fldsexport
     character(len=*)   , intent(in)    :: flds_scalar_name
+    logical            , intent(in)    :: split_rofb
     integer            , intent(out)   :: rc
 
     ! local variables
@@ -59,7 +60,9 @@ contains
     call dshr_fldList_add(fldsExport, trim(flds_scalar_name))
     call dshr_fldlist_add(fldsExport, "Forr_rofl")
     call dshr_fldlist_add(fldsExport, "Forr_rofi")
-    call dshr_fldlist_add(fldsExport, "Forr_rofb")
+    if (split_rofb) then
+       call dshr_fldlist_add(fldsExport, "Forr_rofb")
+    end if
 
     fldlist => fldsExport ! the head of the linked list
     do while (associated(fldlist))
@@ -97,14 +100,16 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Forr_rofi' , fldptr1=Forr_rofi , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    call dshr_state_getfldptr(exportState, 'Forr_rofb' , fldptr1=Forr_rofb , rc=rc)
-    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (split_rofb) then
+       call dshr_state_getfldptr(exportState, 'Forr_rofb' , fldptr1=Forr_rofb , rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     call shr_strdata_get_stream_pointer( sdat, 'Forr_rofl', strm_Forr_rofl, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (.not. associated(strm_Forr_rofl)) then
        Forr_rofl(:) = 0._r8
-       Forr_rofb(:) = 0._r8
+       if (split_rofb) Forr_rofb(:) = 0._r8
     end if
 
     call shr_strdata_get_stream_pointer( sdat, 'Forr_rofi', strm_Forr_rofi, rc=rc)
@@ -118,16 +123,13 @@ contains
        return
     end if
 
-    ! Determine the (optional) static ice shelf basal melt mask used to split Forr_rofl into
-    ! Forr_rofl and Forr_rofb. If split_rofb is false, Forr_rofb stays zero and Forr_rofl is
-    ! unchanged.
-    allocate(rofb_mask(size(Forr_rofl)))
+    ! Determine the static ice shelf basal melt mask used to split Forr_rofl into Forr_rofl
+    ! and Forr_rofb. Only needed when split_rofb is true.
     if (split_rofb) then
+       allocate(rofb_mask(size(Forr_rofl)))
        call drof_datamode_copyall_set_rofb_mask(sdat, &
             antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       rofb_mask(:) = 0._r8
     end if
 
   end subroutine drof_datamode_copyall_init_pointers
@@ -182,9 +184,10 @@ contains
   end subroutine drof_datamode_copyall_set_rofb_mask
 
   !===============================================================================
-  subroutine drof_datamode_copyall_advance(model_lat, rofi_scale_sh, rofi_scale_nh)
+  subroutine drof_datamode_copyall_advance(split_rofb, model_lat, rofi_scale_sh, rofi_scale_nh)
 
     ! input/output variables
+    logical,  intent(in) :: split_rofb
     real(r8), intent(in) :: model_lat(:)
     real(r8), intent(in) :: rofi_scale_sh  ! Forr_rofi scale factor for lat < 0
     real(r8), intent(in) :: rofi_scale_nh  ! Forr_rofi scale factor for lat >= 0
@@ -194,10 +197,9 @@ contains
     real(r8) :: rofl
     !-------------------------------------------------------------------------------
 
-    ! zero out "special values" of export fields, then split Forr_rofl into
-    ! true liquid runoff (Forr_rofl) and ice shelf basal melt (Forr_rofb) using
-    ! rofb_mask - which is zero everywhere if split_rofb is false, in which case
-    ! Forr_rofl is unchanged and Forr_rofb stays zero.
+    ! zero out "special values" of export fields, then split Forr_rofl into true liquid
+    ! runoff (Forr_rofl) and ice shelf basal melt (Forr_rofb) using rofb_mask, if split_rofb
+    ! is on. Otherwise Forr_rofb was never advertised, so leave Forr_rofl unchanged.
     if (associated(strm_Forr_rofl)) then
        do ni = 1, size(Forr_rofl)
           if (abs(strm_Forr_rofl(ni)) < 1.e28_r8) then
@@ -205,8 +207,12 @@ contains
           else
              rofl = 0.0_r8
           end if
-          Forr_rofb(ni) = rofl * rofb_mask(ni)
-          Forr_rofl(ni) = rofl * (1._r8 - rofb_mask(ni))
+          if (split_rofb) then
+             Forr_rofb(ni) = rofl * rofb_mask(ni)
+             Forr_rofl(ni) = rofl * (1._r8 - rofb_mask(ni))
+          else
+             Forr_rofl(ni) = rofl
+          end if
        enddo
     end if
 
