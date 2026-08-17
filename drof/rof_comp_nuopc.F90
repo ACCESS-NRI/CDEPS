@@ -281,7 +281,7 @@ contains
     ! Advertise export fields
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, rc)
+       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofb, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case('cplhist')
        call drof_datamode_cplhist_advertise(exportState, fldsexport, flds_scalar_name, rc)
@@ -470,7 +470,7 @@ contains
     call ESMF_TraceRegionEnter('drof_datamode')
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advance()
+       call drof_datamode_copyall_advance(split_rofb)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default
