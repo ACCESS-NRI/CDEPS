@@ -16,8 +16,6 @@ module drof_datamode_copyall_mod
   public  :: drof_datamode_copyall_init_pointers
   public  :: drof_datamode_copyall_advance
 
-  private :: drof_datamode_copyall_set_rofb_mask
-
   ! export state pointer arrays
   real(r8), pointer :: Forr_rofl(:) => null()
   real(r8), pointer :: Forr_rofi(:) => null()
@@ -27,8 +25,8 @@ module drof_datamode_copyall_mod
   real(r8), pointer :: strm_Forr_rofl(:) => null() ! optional, but at least one provided in stream
   real(r8), pointer :: strm_Forr_rofi(:) => null() ! optional, but at least one provided in stream
 
-  ! Static ice shelf basal melt mask (1 where Forr_rofl should be treated as rofb, 0 otherwise)
-  real(r8), allocatable :: rofb_mask(:)
+  ! true where Forr_rofl should be treated as ice shelf basal melt (Forr_rofb) instead
+  logical, allocatable :: rofb_mask(:)
 
   character(len=*) , parameter :: u_FILE_u = &
        __FILE__
@@ -71,18 +69,13 @@ contains
   end subroutine drof_datamode_copyall_advertise
 
   !===============================================================================
-  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
-       antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
+  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, antarctic_lat_max, rc)
 
     ! input/output variables
     type(ESMF_State)       , intent(inout) :: exportState
     type(shr_strdata_type) , intent(in)    :: sdat
     logical                , intent(in)    :: split_rofb
     real(r8)               , intent(in)    :: antarctic_lat_max
-    real(r8)               , intent(in)    :: greenland_lat_min
-    real(r8)               , intent(in)    :: greenland_lat_max
-    real(r8)               , intent(in)    :: greenland_lon_min
-    real(r8)               , intent(in)    :: greenland_lon_max
     integer                , intent(out)   :: rc
 
     ! local variables
@@ -119,65 +112,18 @@ contains
        return
     end if
 
-    ! Determine the static ice shelf basal melt mask used to split Forr_rofl into Forr_rofl
-    ! and Forr_rofb. Only needed when split_rofb is true.
+    ! Determine which points are treated as ice shelf basal melt (south of antarctic_lat_max),
+    ! rather than true liquid runoff. Only needed when split_rofb is true.
     if (split_rofb) then
+       if (.not. associated(sdat%model_lat)) then
+          call shr_log_error(subname//'ERROR: sdat%model_lat is not associated', rc=rc)
+          return
+       end if
        allocate(rofb_mask(size(Forr_rofl)))
-       call drof_datamode_copyall_set_rofb_mask(sdat, &
-            antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       rofb_mask(:) = (sdat%model_lat(:) <= antarctic_lat_max)
     end if
 
   end subroutine drof_datamode_copyall_init_pointers
-
-  !===============================================================================
-  subroutine drof_datamode_copyall_set_rofb_mask(sdat, &
-       antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
-
-    ! input/output variables
-    type(shr_strdata_type) , intent(in)    :: sdat
-    real(r8)               , intent(in)    :: antarctic_lat_max
-    real(r8)               , intent(in)    :: greenland_lat_min
-    real(r8)               , intent(in)    :: greenland_lat_max
-    real(r8)               , intent(in)    :: greenland_lon_min
-    real(r8)               , intent(in)    :: greenland_lon_max
-    integer                , intent(out)   :: rc
-
-    ! local variables
-    integer  :: ni
-    real(r8) :: lat, lon
-    logical  :: in_antarctic, in_greenland
-    character(len=*), parameter :: subname='(drof_datamode_copyall_set_rofb_mask): '
-    !-------------------------------------------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    if (.not. associated(sdat%model_lon) .or. .not. associated(sdat%model_lat)) then
-       call shr_log_error(subname//'ERROR: sdat%model_lon/model_lat are not associated', rc=rc)
-       return
-    end if
-    if (size(sdat%model_lon) /= size(rofb_mask)) then
-       call shr_log_error(subname//'ERROR: sdat%model_lon size does not match export field size', rc=rc)
-       return
-    end if
-
-    do ni = 1, size(rofb_mask)
-       lat = sdat%model_lat(ni)
-       ! wrap longitude into [-180,180)
-       lon = sdat%model_lon(ni) - 360._r8 * floor((sdat%model_lon(ni) + 180._r8) / 360._r8)
-
-       in_antarctic = (lat <= antarctic_lat_max)
-       in_greenland = (lat >= greenland_lat_min) .and. (lat <= greenland_lat_max) .and. &
-                      (lon >= greenland_lon_min) .and. (lon <= greenland_lon_max)
-
-       if (in_antarctic .or. in_greenland) then
-          rofb_mask(ni) = 1._r8
-       else
-          rofb_mask(ni) = 0._r8
-       end if
-    end do
-
-  end subroutine drof_datamode_copyall_set_rofb_mask
 
   !===============================================================================
   subroutine drof_datamode_copyall_advance(split_rofb)
@@ -201,8 +147,13 @@ contains
              rofl = 0.0_r8
           end if
           if (split_rofb) then
-             Forr_rofb(ni) = rofl * rofb_mask(ni)
-             Forr_rofl(ni) = rofl * (1._r8 - rofb_mask(ni))
+             if (rofb_mask(ni)) then
+                Forr_rofb(ni) = rofl
+                Forr_rofl(ni) = 0._r8
+             else
+                Forr_rofb(ni) = 0._r8
+                Forr_rofl(ni) = rofl
+             end if
           else
              Forr_rofl(ni) = rofl
           end if

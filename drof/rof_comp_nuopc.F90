@@ -80,12 +80,8 @@ module cdeps_drof_comp
   character(CX)                :: model_meshfile = nullstr    ! full pathname to model meshfile
   character(CX)                :: model_maskfile = nullstr    ! full pathname to obtain mask from
   character(CX)                :: restfilm = nullstr          ! model restart file namelist
-  logical                      :: split_rofb = .false.        ! If true, split Forr_rofl into Forr_rofl/Forr_rofb using bounds below
+  logical                      :: split_rofb = .false.        ! If true, split Forr_rofl into Forr_rofl/Forr_rofb using bound below
   real(r8)                     :: rofb_antarctic_lat_max = -60._r8  ! Lat south of which runoff is treated as Antarctic basal melt
-  real(r8)                     :: rofb_greenland_lat_min = 58._r8   ! Min latitude defining box around Greenland for which runoff is treated as basal melt
-  real(r8)                     :: rofb_greenland_lat_max = 85._r8   ! Max latitude defining box around Greenland for which runoff is treated as basal melt
-  real(r8)                     :: rofb_greenland_lon_min = -110._r8 ! Min longitude defining box around Greenland for which runoff is treated as basal melt [-180,180)
-  real(r8)                     :: rofb_greenland_lon_max = -10._r8  ! Max longitude defining box around Greenland for which runoff is treated as basal melt [-180,180)
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -176,14 +172,13 @@ contains
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
     integer           :: bcasttmp(5)
-    real(r8)          :: rbcasttmp(5)
+    real(r8)          :: rbcasttmp(1)
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
-         split_rofb, rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
-         rofb_greenland_lon_min, rofb_greenland_lon_max
+         split_rofb, rofb_antarctic_lat_max
 
     rc = ESMF_SUCCESS
 
@@ -226,10 +221,6 @@ contains
        write(logunit,'(2a,l6)') subname,' export_all        = ',export_all
        write(logunit,'(2a,l6)') subname,' split_rofb             = ',split_rofb
        write(logunit,'(2a,f10.3)') subname,' rofb_antarctic_lat_max = ',rofb_antarctic_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_min = ',rofb_greenland_lat_min
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_max = ',rofb_greenland_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_min = ',rofb_greenland_lon_min
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_max = ',rofb_greenland_lon_max
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -239,10 +230,6 @@ contains
        if (split_rofb) bcasttmp(5) = 1
 
        rbcasttmp(1) = rofb_antarctic_lat_max
-       rbcasttmp(2) = rofb_greenland_lat_min
-       rbcasttmp(3) = rofb_greenland_lat_max
-       rbcasttmp(4) = rofb_greenland_lon_min
-       rbcasttmp(5) = rofb_greenland_lon_max
     end if
 
     ! broadcast namelist input
@@ -259,7 +246,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, bcasttmp, 5, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, rbcasttmp, 5, main_task, rc=rc)
+    call ESMF_VMBroadcast(vm, rbcasttmp, 1, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     nx_global = bcasttmp(1)
@@ -269,10 +256,6 @@ contains
     split_rofb = (bcasttmp(5) == 1)
 
     rofb_antarctic_lat_max = rbcasttmp(1)
-    rofb_greenland_lat_min = rbcasttmp(2)
-    rofb_greenland_lat_max = rbcasttmp(3)
-    rofb_greenland_lon_min = rbcasttmp(4)
-    rofb_greenland_lon_max = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -438,9 +421,7 @@ contains
        ! Initialize stream and export state pointers
        select case (trim(datamode))
        case('copyall')
-          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
-               rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
-               rofb_greenland_lon_min, rofb_greenland_lon_max, rc)
+          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, rofb_antarctic_lat_max, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        case('cplhist')
           call drof_datamode_cplhist_init_pointers(exportState, sdat, rc)
