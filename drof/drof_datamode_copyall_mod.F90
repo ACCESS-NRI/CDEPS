@@ -25,8 +25,11 @@ module drof_datamode_copyall_mod
   real(r8), pointer :: strm_Forr_rofl(:) => null() ! optional, but at least one provided in stream
   real(r8), pointer :: strm_Forr_rofi(:) => null() ! optional, but at least one provided in stream
 
-  ! true where Forr_rofl should be treated as ice shelf basal melt (Forr_rofb) instead
-  logical, allocatable :: rofb_mask(:)
+  ! true south of antarctic_lat_max - all Forr_rofl there is treated as basal melt (Forr_rofb)
+  logical, allocatable :: antarctic_mask(:)
+
+  ! true within the Greenland lat/lon box - Forr_rofi there is split evenly with Forr_rofb
+  logical, allocatable :: greenland_mask(:)
 
   character(len=*) , parameter :: u_FILE_u = &
        __FILE__
@@ -69,16 +72,23 @@ contains
   end subroutine drof_datamode_copyall_advertise
 
   !===============================================================================
-  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, antarctic_lat_max, rc)
+  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
+       antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
 
     ! input/output variables
     type(ESMF_State)       , intent(inout) :: exportState
     type(shr_strdata_type) , intent(in)    :: sdat
     logical                , intent(in)    :: split_rofb
     real(r8)               , intent(in)    :: antarctic_lat_max
+    real(r8)               , intent(in)    :: greenland_lat_min
+    real(r8)               , intent(in)    :: greenland_lat_max
+    real(r8)               , intent(in)    :: greenland_lon_min
+    real(r8)               , intent(in)    :: greenland_lon_max
     integer                , intent(out)   :: rc
 
     ! local variables
+    integer  :: ni
+    real(r8) :: lon
     character(len=*), parameter :: subname='(drof_init_pointers): '
     !-------------------------------------------------------------------------------
 
@@ -112,15 +122,24 @@ contains
        return
     end if
 
-    ! Determine which points are treated as ice shelf basal melt (south of antarctic_lat_max),
-    ! rather than true liquid runoff. Only needed when split_rofb is true.
+    ! Determine the regions used to construct Forr_rofb. Only needed when split_rofb is true:
+    !  - Antarctica (south of antarctic_lat_max): all of Forr_rofl is treated as basal melt
+    !  - Greenland (lat/lon box): Forr_rofi is split evenly between Forr_rofi and Forr_rofb
     if (split_rofb) then
-       if (.not. associated(sdat%model_lat)) then
-          call shr_log_error(subname//'ERROR: sdat%model_lat is not associated', rc=rc)
+       if (.not. associated(sdat%model_lat) .or. .not. associated(sdat%model_lon)) then
+          call shr_log_error(subname//'ERROR: sdat%model_lat/model_lon are not associated', rc=rc)
           return
        end if
-       allocate(rofb_mask(size(Forr_rofl)))
-       rofb_mask(:) = (sdat%model_lat(:) <= antarctic_lat_max)
+       allocate(antarctic_mask(size(Forr_rofl)))
+       allocate(greenland_mask(size(Forr_rofl)))
+       antarctic_mask(:) = (sdat%model_lat(:) <= antarctic_lat_max)
+       do ni = 1, size(Forr_rofl)
+          ! wrap longitude into [-180,180)
+          lon = sdat%model_lon(ni) - 360._r8 * floor((sdat%model_lon(ni) + 180._r8) / 360._r8)
+          greenland_mask(ni) = (sdat%model_lat(ni) >= greenland_lat_min) .and. &
+                               (sdat%model_lat(ni) <= greenland_lat_max) .and. &
+                               (lon >= greenland_lon_min) .and. (lon <= greenland_lon_max)
+       end do
     end if
 
   end subroutine drof_datamode_copyall_init_pointers
@@ -133,12 +152,14 @@ contains
 
     ! local variables
     integer  :: ni
-    real(r8) :: rofl
+    real(r8) :: rofl, rofi
     !-------------------------------------------------------------------------------
 
-    ! zero out "special values" of export fields, then split Forr_rofl into true liquid
-    ! runoff (Forr_rofl) and ice shelf basal melt (Forr_rofb) using rofb_mask, if split_rofb
-    ! is on. Otherwise Forr_rofb was never advertised, so leave Forr_rofl unchanged.
+    ! Zero out "special values" of export fields. If split_rofb is on, additionally construct
+    ! Forr_rofb: south of antarctic_lat_max (Antarctica), all of Forr_rofl becomes Forr_rofb;
+    ! within the Greenland box, Forr_rofi is split evenly between Forr_rofi and Forr_rofb.
+    ! Elsewhere Forr_rofb is zero and Forr_rofl/Forr_rofi are unchanged. If split_rofb is off,
+    ! Forr_rofb was never advertised, so Forr_rofl/Forr_rofi are left as-is.
     if (associated(strm_Forr_rofl)) then
        do ni = 1, size(Forr_rofl)
           if (abs(strm_Forr_rofl(ni)) < 1.e28_r8) then
@@ -147,7 +168,7 @@ contains
              rofl = 0.0_r8
           end if
           if (split_rofb) then
-             if (rofb_mask(ni)) then
+             if (antarctic_mask(ni)) then
                 Forr_rofb(ni) = rofl
                 Forr_rofl(ni) = 0._r8
              else
@@ -163,9 +184,15 @@ contains
     if (associated(strm_Forr_rofi)) then
        do ni = 1, size(Forr_rofi)
           if (abs(strm_Forr_rofi(ni)) < 1.e28_r8) then
-             Forr_rofi(ni) = strm_Forr_rofi(ni)
+             rofi = strm_Forr_rofi(ni)
           else
-             Forr_rofi(ni) = 0.0_r8
+             rofi = 0.0_r8
+          end if
+          if (split_rofb .and. greenland_mask(ni)) then
+             Forr_rofb(ni) = 0.5_r8 * rofi
+             Forr_rofi(ni) = 0.5_r8 * rofi
+          else
+             Forr_rofi(ni) = rofi
           end if
        end do
     end if
