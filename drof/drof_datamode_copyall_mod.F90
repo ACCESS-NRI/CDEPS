@@ -19,16 +19,14 @@ module drof_datamode_copyall_mod
   ! export state pointer arrays
   real(r8), pointer :: Forr_rofl(:) => null()
   real(r8), pointer :: Forr_rofi(:) => null()
-  real(r8), pointer :: Forr_rofb(:) => null()
+  real(r8), pointer :: Forr_rofs(:) => null()
 
   ! stream pointer arrays
   real(r8), pointer :: strm_Forr_rofl(:) => null() ! optional, but at least one provided in stream
   real(r8), pointer :: strm_Forr_rofi(:) => null() ! optional, but at least one provided in stream
 
-  ! true south of antarctic_lat_max - all Forr_rofl there is treated as basal melt (Forr_rofb)
+  ! Masks used to split submarine melt when split_rofs is true
   logical, allocatable :: antarctic_mask(:)
-
-  ! true within the Greenland lat/lon box - Forr_rofi there is split evenly with Forr_rofb
   logical, allocatable :: greenland_mask(:)
 
   character(len=*) , parameter :: u_FILE_u = &
@@ -38,13 +36,13 @@ module drof_datamode_copyall_mod
 contains
 !===============================================================================
 
-  subroutine drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofb, rc)
+  subroutine drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofs, rc)
 
     ! input/output variables
     type(esmf_State)   , intent(inout) :: exportState
     type(fldlist_type) , pointer       :: fldsexport
     character(len=*)   , intent(in)    :: flds_scalar_name
-    logical            , intent(in)    :: split_rofb
+    logical            , intent(in)    :: split_rofs
     integer            , intent(out)   :: rc
 
     ! local variables
@@ -57,8 +55,8 @@ contains
     call dshr_fldList_add(fldsExport, trim(flds_scalar_name))
     call dshr_fldlist_add(fldsExport, "Forr_rofl")
     call dshr_fldlist_add(fldsExport, "Forr_rofi")
-    if (split_rofb) then
-       call dshr_fldlist_add(fldsExport, "Forr_rofb")
+    if (split_rofs) then
+       call dshr_fldlist_add(fldsExport, "Forr_rofs")
     end if
 
     fldlist => fldsExport ! the head of the linked list
@@ -72,13 +70,13 @@ contains
   end subroutine drof_datamode_copyall_advertise
 
   !===============================================================================
-  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
+  subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofs, &
        antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
 
     ! input/output variables
     type(ESMF_State)       , intent(inout) :: exportState
     type(shr_strdata_type) , intent(in)    :: sdat
-    logical                , intent(in)    :: split_rofb
+    logical                , intent(in)    :: split_rofs
     real(r8)               , intent(in)    :: antarctic_lat_max
     real(r8)               , intent(in)    :: greenland_lat_min
     real(r8)               , intent(in)    :: greenland_lat_max
@@ -99,8 +97,8 @@ contains
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     call dshr_state_getfldptr(exportState, 'Forr_rofi' , fldptr1=Forr_rofi , rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
-    if (split_rofb) then
-       call dshr_state_getfldptr(exportState, 'Forr_rofb' , fldptr1=Forr_rofb , rc=rc)
+    if (split_rofs) then
+       call dshr_state_getfldptr(exportState, 'Forr_rofs' , fldptr1=Forr_rofs , rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -108,7 +106,6 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (.not. associated(strm_Forr_rofl)) then
        Forr_rofl(:) = 0._r8
-       if (split_rofb) Forr_rofb(:) = 0._r8
     end if
 
     call shr_strdata_get_stream_pointer( sdat, 'Forr_rofi', strm_Forr_rofi, rc=rc)
@@ -120,20 +117,22 @@ contains
     if (.not. associated(strm_Forr_rofl) .and. .not. associated(strm_Forr_rofi)) then
        call shr_log_error(subname//'ERROR: At least one of strm_Forr_rofl or strm_Forr_rofi must be associated for drof', rc=rc)
        return
+    else if (split_rofs) then
+       Forr_rofs(:) = 0._r8
     end if
 
-    ! Determine the regions used to construct Forr_rofb. Only needed when split_rofb is true:
-    !  - Antarctica (south of antarctic_lat_max): all of Forr_rofl is treated as basal melt
-    !  - Greenland (lat/lon box): Forr_rofi is split evenly between Forr_rofi and Forr_rofb
-    if (split_rofb) then
+    ! Determine the regions used to construct Forr_rofs when split_rofs is true
+    !  - Antarctica: all of Forr_rofl is treated as basal melt
+    !  - Greenland: Forr_rofi is split evenly between Forr_rofi and Forr_rofs
+    if (split_rofs) then
        if (.not. associated(sdat%model_lat) .or. .not. associated(sdat%model_lon)) then
           call shr_log_error(subname//'ERROR: sdat%model_lat/model_lon are not associated', rc=rc)
           return
        end if
        allocate(antarctic_mask(size(Forr_rofl)))
-       allocate(greenland_mask(size(Forr_rofl)))
+       allocate(greenland_mask(size(Forr_rofi)))
        antarctic_mask(:) = (sdat%model_lat(:) <= antarctic_lat_max)
-       do ni = 1, size(Forr_rofl)
+       do ni = 1, size(Forr_rofi)
           ! wrap longitude into [-180,180)
           lon = sdat%model_lon(ni) - 360._r8 * floor((sdat%model_lon(ni) + 180._r8) / 360._r8)
           greenland_mask(ni) = (sdat%model_lat(ni) >= greenland_lat_min) .and. &
@@ -145,21 +144,19 @@ contains
   end subroutine drof_datamode_copyall_init_pointers
 
   !===============================================================================
-  subroutine drof_datamode_copyall_advance(split_rofb)
+  subroutine drof_datamode_copyall_advance(split_rofs)
 
     ! input/output variables
-    logical, intent(in) :: split_rofb
+    logical, intent(in) :: split_rofs
 
     ! local variables
     integer  :: ni
     real(r8) :: rofl, rofi
     !-------------------------------------------------------------------------------
 
-    ! Zero out "special values" of export fields. If split_rofb is on, additionally construct
-    ! Forr_rofb: south of antarctic_lat_max (Antarctica), all of Forr_rofl becomes Forr_rofb;
-    ! within the Greenland box, Forr_rofi is split evenly between Forr_rofi and Forr_rofb.
-    ! Elsewhere Forr_rofb is zero and Forr_rofl/Forr_rofi are unchanged. If split_rofb is off,
-    ! Forr_rofb was never advertised, so Forr_rofl/Forr_rofi are left as-is.
+    ! Zero out "special values" of export fields. 
+    ! If split_rofs is on, all of Forr_rofl becomes Forr_rofs around Antarctica, and 50% of
+    ! Forr_rofi becomes Forr_rofs around Greenland.
     if (associated(strm_Forr_rofl)) then
        do ni = 1, size(Forr_rofl)
           if (abs(strm_Forr_rofl(ni)) < 1.e28_r8) then
@@ -167,12 +164,12 @@ contains
           else
              rofl = 0.0_r8
           end if
-          if (split_rofb) then
+          if (split_rofs) then
              if (antarctic_mask(ni)) then
-                Forr_rofb(ni) = rofl
+                Forr_rofs(ni) = rofl
                 Forr_rofl(ni) = 0._r8
              else
-                Forr_rofb(ni) = 0._r8
+                Forr_rofs(ni) = 0._r8
                 Forr_rofl(ni) = rofl
              end if
           else
@@ -188,8 +185,8 @@ contains
           else
              rofi = 0.0_r8
           end if
-          if (split_rofb .and. greenland_mask(ni)) then
-             Forr_rofb(ni) = 0.5_r8 * rofi
+          if (split_rofs .and. greenland_mask(ni)) then
+             Forr_rofs(ni) = 0.5_r8 * rofi
              Forr_rofi(ni) = 0.5_r8 * rofi
           else
              Forr_rofi(ni) = rofi

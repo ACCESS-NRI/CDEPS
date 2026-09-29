@@ -80,12 +80,12 @@ module cdeps_drof_comp
   character(CX)                :: model_meshfile = nullstr    ! full pathname to model meshfile
   character(CX)                :: model_maskfile = nullstr    ! full pathname to obtain mask from
   character(CX)                :: restfilm = nullstr          ! model restart file namelist
-  logical                      :: split_rofb = .false.        ! If true, split basal melt into Forr_rofb using bounds below
-  real(r8)                     :: rofb_antarctic_lat_max = -60._r8  ! Lat south of which all Forr_rofl is treated as Antarctic basal melt
-  real(r8)                     :: rofb_greenland_lat_min = 58._r8   ! Min latitude of box around Greenland where Forr_rofi is split evenly with Forr_rofb
-  real(r8)                     :: rofb_greenland_lat_max = 85._r8   ! Max latitude of box around Greenland where Forr_rofi is split evenly with Forr_rofb
-  real(r8)                     :: rofb_greenland_lon_min = -110._r8 ! Min longitude of box around Greenland where Forr_rofi is split evenly with Forr_rofb [-180,180)
-  real(r8)                     :: rofb_greenland_lon_max = -10._r8  ! Max longitude of box around Greenland where Forr_rofi is split evenly with Forr_rofb [-180,180)
+  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds below
+  real(r8)                     :: rofs_antarctic_lat_max = -60._r8  ! Lat south of which all liquid runoff is assigned to Forr_rofs
+  real(r8)                     :: rofs_greenland_lat_min = 58._r8   ! Min lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
+  real(r8)                     :: rofs_greenland_lat_max = 85._r8   ! Max lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
+  real(r8)                     :: rofs_greenland_lon_min = -110._r8 ! Min lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
+  real(r8)                     :: rofs_greenland_lon_max = -10._r8  ! Max lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -182,8 +182,8 @@ contains
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
-         split_rofb, rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
-         rofb_greenland_lon_min, rofb_greenland_lon_max
+         split_rofs, rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
+         rofs_greenland_lon_min, rofs_greenland_lon_max
 
     rc = ESMF_SUCCESS
 
@@ -224,25 +224,25 @@ contains
        write(logunit,'(3a)')    subname,' restfilm          = ',trim(restfilm)
        write(logunit,'(2a,l6)') subname,' skip_restart_read = ',skip_restart_read
        write(logunit,'(2a,l6)') subname,' export_all        = ',export_all
-       write(logunit,'(2a,l6)') subname,' split_rofb             = ',split_rofb
-       write(logunit,'(2a,f10.3)') subname,' rofb_antarctic_lat_max = ',rofb_antarctic_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_min = ',rofb_greenland_lat_min
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lat_max = ',rofb_greenland_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_min = ',rofb_greenland_lon_min
-       write(logunit,'(2a,f10.3)') subname,' rofb_greenland_lon_max = ',rofb_greenland_lon_max
+       write(logunit,'(2a,l6)') subname,' split_rofs             = ',split_rofs
+       write(logunit,'(2a,f10.3)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
+       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lat_min = ',rofs_greenland_lat_min
+       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lat_max = ',rofs_greenland_lat_max
+       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lon_min = ',rofs_greenland_lon_min
+       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lon_max = ',rofs_greenland_lon_max
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
        bcasttmp(2) = ny_global
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
-       if (split_rofb) bcasttmp(5) = 1
+       if (split_rofs) bcasttmp(5) = 1
 
-       rbcasttmp(1) = rofb_antarctic_lat_max
-       rbcasttmp(2) = rofb_greenland_lat_min
-       rbcasttmp(3) = rofb_greenland_lat_max
-       rbcasttmp(4) = rofb_greenland_lon_min
-       rbcasttmp(5) = rofb_greenland_lon_max
+       rbcasttmp(1) = rofs_antarctic_lat_max
+       rbcasttmp(2) = rofs_greenland_lat_min
+       rbcasttmp(3) = rofs_greenland_lat_max
+       rbcasttmp(4) = rofs_greenland_lon_min
+       rbcasttmp(5) = rofs_greenland_lon_max
     end if
 
     ! broadcast namelist input
@@ -266,13 +266,13 @@ contains
     ny_global = bcasttmp(2)
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
-    split_rofb = (bcasttmp(5) == 1)
+    split_rofs = (bcasttmp(5) == 1)
 
-    rofb_antarctic_lat_max = rbcasttmp(1)
-    rofb_greenland_lat_min = rbcasttmp(2)
-    rofb_greenland_lat_max = rbcasttmp(3)
-    rofb_greenland_lon_min = rbcasttmp(4)
-    rofb_greenland_lon_max = rbcasttmp(5)
+    rofs_antarctic_lat_max = rbcasttmp(1)
+    rofs_greenland_lat_min = rbcasttmp(2)
+    rofs_greenland_lat_max = rbcasttmp(3)
+    rofs_greenland_lon_min = rbcasttmp(4)
+    rofs_greenland_lon_max = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -286,7 +286,7 @@ contains
     ! Advertise export fields
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofb, rc)
+       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofs, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case('cplhist')
        call drof_datamode_cplhist_advertise(exportState, fldsexport, flds_scalar_name, rc)
@@ -438,9 +438,9 @@ contains
        ! Initialize stream and export state pointers
        select case (trim(datamode))
        case('copyall')
-          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofb, &
-               rofb_antarctic_lat_max, rofb_greenland_lat_min, rofb_greenland_lat_max, &
-               rofb_greenland_lon_min, rofb_greenland_lon_max, rc)
+          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofs, &
+               rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
+               rofs_greenland_lon_min, rofs_greenland_lon_max, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        case('cplhist')
           call drof_datamode_cplhist_init_pointers(exportState, sdat, rc)
@@ -475,7 +475,7 @@ contains
     call ESMF_TraceRegionEnter('drof_datamode')
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advance(split_rofb)
+       call drof_datamode_copyall_advance(split_rofs)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default
