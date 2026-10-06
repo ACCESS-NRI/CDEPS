@@ -25,6 +25,7 @@ module cdeps_drof_comp
   use NUOPC_Model      , only : NUOPC_ModelGet, SetVM
   use shr_kind_mod     , only : r8=>shr_kind_r8, cl=>shr_kind_cl, cs=>shr_kind_cs, cx=>shr_kind_cx
   use shr_cal_mod      , only : shr_cal_ymd2date
+  use shr_const_mod    , only : SHR_CONST_SPVAL
   use shr_log_mod      , only : shr_log_setLogUnit, shr_log_error
   use dshr_methods_mod , only : dshr_state_diagnose, chkerr, memcheck
   use dshr_strdata_mod , only : shr_strdata_type, shr_strdata_advance, shr_strdata_init_from_config
@@ -38,6 +39,8 @@ module cdeps_drof_comp
   use drof_datamode_copyall_mod, only : drof_datamode_copyall_advertise
   use drof_datamode_copyall_mod, only : drof_datamode_copyall_init_pointers
   use drof_datamode_copyall_mod, only : drof_datamode_copyall_advance
+  use drof_datamode_copyall_mod, only : drof_datamode_copyall_rofi_scale
+  use drof_datamode_copyall_mod, only : drof_datamode_copyall_rofi_scale_annual_mean
 
   use drof_datamode_cplhist_mod, only : drof_datamode_cplhist_advertise
   use drof_datamode_cplhist_mod, only : drof_datamode_cplhist_init_pointers
@@ -80,6 +83,12 @@ module cdeps_drof_comp
   character(CX)                :: model_meshfile = nullstr    ! full pathname to model meshfile
   character(CX)                :: model_maskfile = nullstr    ! full pathname to obtain mask from
   character(CX)                :: restfilm = nullstr          ! model restart file namelist
+  real(r8)                     :: rofi_scale_sh(12) = SHR_CONST_SPVAL ! monthly Forr_rofi scale factors for lat < 0,
+                                                              ! linearly interpolated between mid-month points.
+                                                              ! Unset => no scaling
+  real(r8)                     :: rofi_scale_nh(12) = SHR_CONST_SPVAL ! as rofi_scale_sh, for lat >= 0
+  logical                      :: rofi_scale_normalise = .false. ! true => rescale rofi_scale_sh/nh so their
+                                                              ! interpolated annual mean (365 day year) is 1
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -169,12 +178,13 @@ contains
     integer           :: nu         ! unit number
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
-    integer           :: bcasttmp(4)
+    integer           :: bcasttmp(5)
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
-         restfilm, nx_global, ny_global, skip_restart_read, export_all
+         restfilm, nx_global, ny_global, skip_restart_read, export_all, &
+         rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise
 
     rc = ESMF_SUCCESS
 
@@ -215,12 +225,16 @@ contains
        write(logunit,'(3a)')    subname,' restfilm          = ',trim(restfilm)
        write(logunit,'(2a,l6)') subname,' skip_restart_read = ',skip_restart_read
        write(logunit,'(2a,l6)') subname,' export_all        = ',export_all
+       write(logunit,'(2a,12g12.5)') subname,' rofi_scale_sh     = ',rofi_scale_sh
+       write(logunit,'(2a,12g12.5)') subname,' rofi_scale_nh     = ',rofi_scale_nh
+       write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
        bcasttmp(2) = ny_global
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
+       if (rofi_scale_normalise) bcasttmp(5) = 1
     end if
 
     ! broadcast namelist input
@@ -235,13 +249,18 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, restfilm, CX, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, bcasttmp, 3, main_task, rc=rc)
+    call ESMF_VMBroadcast(vm, bcasttmp, 5, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofi_scale_sh, 12, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofi_scale_nh, 12, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     nx_global = bcasttmp(1)
     ny_global = bcasttmp(2)
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
+    rofi_scale_normalise = (bcasttmp(5) == 1)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -252,6 +271,11 @@ contains
        return
     end select
 
+    call check_rofi_scale(rofi_scale_sh, 'rofi_scale_sh', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call check_rofi_scale(rofi_scale_nh, 'rofi_scale_nh', rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! Advertise export fields
     select case (trim(datamode))
     case('copyall')
@@ -261,6 +285,43 @@ contains
        call drof_datamode_cplhist_advertise(exportState, fldsexport, flds_scalar_name, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end select
+
+  contains
+
+    subroutine check_rofi_scale(scale, name, rc)
+      ! A rofi scale factor namelist array must be unset (=> no scaling) or have 12
+      ! non-negative values, one per month. Unset arrays are set to 1. If
+      ! rofi_scale_normalise, supplied arrays are rescaled to an annual mean of 1.
+
+      real(r8)         , intent(inout) :: scale(12)
+      character(len=*) , intent(in)    :: name
+      integer          , intent(out)   :: rc
+
+      real(r8) :: annual_mean
+
+      rc = ESMF_SUCCESS
+      if (all(scale == SHR_CONST_SPVAL)) then
+         scale(:) = 1.0_r8
+      else if (any(scale == SHR_CONST_SPVAL) .or. any(scale < 0.0_r8)) then
+         call shr_log_error(subname//' ERROR: '//name//' must have 12 non-negative values, one per month', rc=rc)
+         return
+      else if (trim(datamode) /= 'copyall') then
+         call shr_log_error(subname//' ERROR: '//name//' is only supported for datamode copyall', rc=rc)
+         return
+      else if (rofi_scale_normalise) then
+         annual_mean = drof_datamode_copyall_rofi_scale_annual_mean(scale)
+         if (annual_mean <= 0.0_r8) then
+            call shr_log_error(subname//' ERROR: '//name//' annual mean is zero, cannot normalise', rc=rc)
+            return
+         end if
+         scale(:) = scale(:) / annual_mean
+         if (mainproc) then
+            write(logunit,'(4a,f10.6)') subname,' ',name,' annual mean before normalising = ',annual_mean
+            write(logunit,'(4a,12f8.4)') subname,' ',name,' normalised = ',scale
+         end if
+      end if
+
+    end subroutine check_rofi_scale
 
   end subroutine InitializeAdvertise
 
@@ -392,6 +453,7 @@ contains
 
     ! local variables
     character(len=CL) :: rpfile
+    real(r8)          :: scale_sh, scale_nh ! Forr_rofi scale factors at target_ymd, target_tod
     character(len=*), parameter :: subName = "(drof_comp_run) "
     !--------------------------------
 
@@ -442,7 +504,13 @@ contains
     call ESMF_TraceRegionEnter('drof_datamode')
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advance()
+       call drof_datamode_copyall_rofi_scale(rofi_scale_sh, target_ymd, target_tod, sdat%model_calendar, &
+            logunit, scale_sh, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call drof_datamode_copyall_rofi_scale(rofi_scale_nh, target_ymd, target_tod, sdat%model_calendar, &
+            logunit, scale_nh, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default
