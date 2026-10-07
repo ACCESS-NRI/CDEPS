@@ -142,6 +142,7 @@ contains
   !===============================================================================
   subroutine drof_datamode_copyall_rofi_scale(scale, ymd, tod, calendar, logunit, scale_now, rc)
 
+    ! Calculate scale factor for model time, by interpolating between monthly values
     ! Forr_rofi scale factor at model time ymd, tod. scale(m) applies at the middle of
     ! month m, and is linearly interpolated in time between mid-month points (December
     ! wraps to January), using the same time interpolation as stream data.
