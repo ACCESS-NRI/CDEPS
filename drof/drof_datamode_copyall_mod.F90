@@ -152,7 +152,7 @@ contains
     integer          , intent(in)  :: ymd            ! Current model date (YYYYMMDD)
     integer          , intent(in)  :: tod            ! Time of day (seconds since midnight)
     character(len=*) , intent(in)  :: calendar       ! Model calendar (e.g. NO_LEAP or GREGORIAN)
-    integer          , intent(in)  :: logunit        ! ! logging unit number
+    integer          , intent(in)  :: logunit        ! logging unit number
     real(r8)         , intent(out) :: scale_now      ! Interpolated scaling factor at the model time
     integer          , intent(out) :: rc
 

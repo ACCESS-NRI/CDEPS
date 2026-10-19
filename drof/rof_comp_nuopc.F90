@@ -84,8 +84,10 @@ module cdeps_drof_comp
   character(CX)                :: model_maskfile = nullstr    ! full pathname to obtain mask from
   character(CX)                :: restfilm = nullstr          ! model restart file namelist
   real(r8)                     :: rofi_scale_sh(12) = SHR_CONST_SPVAL ! monthly scaling factors for frozen runoff (Forr_rofi)
-                                                              ! for lat < 0 (Southern Hemisphere),
-                                                              ! linearly interpolated between mid-month points.
+                                                              ! for lat < 0 (Southern Hemisphere).
+                                                              ! Each value applies at the middle of its month and
+                                                              ! the factor is linearly interpolated between them, so
+                                                              ! values taken from monthly means are slightly smoothed.
                                                               ! Unset => no scaling
   real(r8)                     :: rofi_scale_nh(12) = SHR_CONST_SPVAL ! as rofi_scale_sh, for lat >= 0
   logical                      :: rofi_scale_normalise = .false. ! true => rescale so the annual mean scale factor is 1
