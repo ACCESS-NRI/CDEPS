@@ -148,12 +148,12 @@ contains
     ! wraps to January), using the same time interpolation as stream data.
 
     ! input/output variables
-    real(r8)         , intent(in)  :: scale(12)
-    integer          , intent(in)  :: ymd
-    integer          , intent(in)  :: tod
-    character(len=*) , intent(in)  :: calendar
-    integer          , intent(in)  :: logunit
-    real(r8)         , intent(out) :: scale_now
+    real(r8)         , intent(in)  :: scale(12)      ! Mid-month scaling factors for January to December
+    integer          , intent(in)  :: ymd            ! Current model date (YYYYMMDD)
+    integer          , intent(in)  :: tod            ! Time of day (seconds since midnight)
+    character(len=*) , intent(in)  :: calendar       ! Model calendar (e.g. NO_LEAP or GREGORIAN)
+    integer          , intent(in)  :: logunit        ! ! logging unit number
+    real(r8)         , intent(out) :: scale_now      ! Interpolated scaling factor at the model time
     integer          , intent(out) :: rc
 
     ! local variables
