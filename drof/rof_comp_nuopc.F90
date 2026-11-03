@@ -94,11 +94,11 @@ module cdeps_drof_comp
                                                               ! (365 day year), i.e. no change to the annual Forr_rofi
                                                               ! total for constant input
   logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds below
-  real(r8)                     :: rofs_antarctic_lat_max = -60._r8  ! Lat south of which all liquid runoff is assigned to Forr_rofs
+  real(r8)                     :: rofs_antarctic_lat_max = -60._r8  ! Lat at or south of which all liquid runoff is assigned to Forr_rofs
   real(r8)                     :: rofs_greenland_lat_min = 58._r8   ! Min lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
   real(r8)                     :: rofs_greenland_lat_max = 85._r8   ! Max lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
-  real(r8)                     :: rofs_greenland_lon_min = -110._r8 ! Min lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
-  real(r8)                     :: rofs_greenland_lon_max = -10._r8  ! Max lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
+  real(r8)                     :: rofs_greenland_lon_min = -110._r8 ! Min lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs [-180,180)
+  real(r8)                     :: rofs_greenland_lon_max = -10._r8  ! Max lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs [-180,180)
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -241,12 +241,12 @@ contains
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_sh     = ',rofi_scale_sh
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_nh     = ',rofi_scale_nh
        write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
-       write(logunit,'(2a,l6)') subname,' split_rofs             = ',split_rofs
-       write(logunit,'(2a,f10.3)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lat_min = ',rofs_greenland_lat_min
-       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lat_max = ',rofs_greenland_lat_max
-       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lon_min = ',rofs_greenland_lon_min
-       write(logunit,'(2a,f10.3)') subname,' rofs_greenland_lon_max = ',rofs_greenland_lon_max
+       write(logunit,'(2a,l6)') subname,' split_rofs        = ',split_rofs
+       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_min = ',rofs_greenland_lat_min
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_max = ',rofs_greenland_lat_max
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lon_min = ',rofs_greenland_lon_min
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lon_max = ',rofs_greenland_lon_max
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -305,6 +305,20 @@ contains
        call shr_log_error(' ERROR illegal drof datamode = '//trim(datamode), rc=rc)
        return
     end select
+
+    if (split_rofs .and. trim(datamode) /= 'copyall') then
+       call shr_log_error(subname//' ERROR: split_rofs is only supported for datamode copyall', rc=rc)
+       return
+    end if
+    if (split_rofs) then
+       ! The Greenland box longitudes are compared with model longitudes wrapped into [-180,180)
+       if (rofs_greenland_lon_min < -180._r8 .or. rofs_greenland_lon_max >= 180._r8 .or. &
+           rofs_greenland_lon_min > rofs_greenland_lon_max) then
+          call shr_log_error(subname//' ERROR: rofs_greenland_lon_min/max must be in [-180,180) '// &
+               'with rofs_greenland_lon_min <= rofs_greenland_lon_max', rc=rc)
+          return
+       end if
+    end if
 
     call check_rofi_scale(rofi_scale_sh, 'rofi_scale_sh', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return

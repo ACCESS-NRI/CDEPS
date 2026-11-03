@@ -121,8 +121,6 @@ contains
     if (.not. associated(strm_Forr_rofl) .and. .not. associated(strm_Forr_rofi)) then
        call shr_log_error(subname//'ERROR: At least one of strm_Forr_rofl or strm_Forr_rofi must be associated for drof', rc=rc)
        return
-    else if (split_rofs) then
-       Forr_rofs(:) = 0._r8
     end if
 
     ! Determine the regions used to construct Forr_rofs when split_rofs is true
@@ -165,6 +163,8 @@ contains
     ! If split_rofs is on, all of Forr_rofl becomes Forr_rofs around Antarctica, and 50% of
     ! Forr_rofi becomes Forr_rofs around Greenland. Any Forr_rofi scaling is applied after
     ! this split, so it does not affect Forr_rofs.
+    if (split_rofs) Forr_rofs(:) = 0._r8
+
     if (associated(strm_Forr_rofl)) then
        do ni = 1, size(Forr_rofl)
           if (abs(strm_Forr_rofl(ni)) < 1.e28_r8) then
@@ -174,10 +174,9 @@ contains
           end if
           if (split_rofs) then
              if (antarctic_mask(ni)) then
-                Forr_rofs(ni) = rofl
+                Forr_rofs(ni) = Forr_rofs(ni) + rofl
                 Forr_rofl(ni) = 0._r8
              else
-                Forr_rofs(ni) = 0._r8
                 Forr_rofl(ni) = rofl
              end if
           else
@@ -193,11 +192,12 @@ contains
           else
              rofi = 0.0_r8
           end if
-          if (split_rofs .and. greenland_mask(ni)) then
-             Forr_rofs(ni) = 0.5_r8 * rofi
-             Forr_rofi(ni) = 0.5_r8 * rofi
-          else
-             Forr_rofi(ni) = rofi
+          Forr_rofi(ni) = rofi
+          if (split_rofs) then
+             if (greenland_mask(ni)) then
+                Forr_rofs(ni) = Forr_rofs(ni) + 0.5_r8 * rofi
+                Forr_rofi(ni) = 0.5_r8 * rofi
+             end if
           end if
        end do
        Forr_rofi(:) = Forr_rofi(:) * merge(rofi_scale_sh, rofi_scale_nh, model_lat(:) < 0.0_r8)
