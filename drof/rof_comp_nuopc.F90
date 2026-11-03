@@ -93,7 +93,8 @@ module cdeps_drof_comp
   logical                      :: rofi_scale_normalise = .false. ! true => rescale so the annual mean scale factor is 1
                                                               ! (365 day year), i.e. no change to the annual Forr_rofi
                                                               ! total for constant input
-  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds below
+  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds below.
+                                                              ! Set by the flds_rofs attribute
   real(r8)                     :: rofs_antarctic_lat_max = -60._r8  ! Lat at or south of which all liquid runoff is assigned to Forr_rofs
   real(r8)                     :: rofs_greenland_lat_min = 58._r8   ! Min lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
   real(r8)                     :: rofs_greenland_lat_max = 85._r8   ! Max lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
@@ -188,15 +189,17 @@ contains
     integer           :: nu         ! unit number
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
-    integer           :: bcasttmp(6)
+    integer           :: bcasttmp(5)
     real(r8)          :: rbcasttmp(5)
+    character(len=CL) :: cvalue
+    logical           :: isPresent, isSet
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
          rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise, &
-         split_rofs, rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
+         rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
          rofs_greenland_lon_min, rofs_greenland_lon_max
 
     rc = ESMF_SUCCESS
@@ -213,6 +216,13 @@ contains
 
     ! determine logical mainproc
     mainproc = (my_task == main_task)
+
+    ! Optional splitting of runoff into Forr_rofs (submarine melt), set by the flds_rofs
+    ! attribute shared with the mediator and ocean component
+    call NUOPC_CompAttributeGet(gcomp, name='flds_rofs', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) read(cvalue,*) split_rofs
 
     ! Read drof_nml from nlfilename
     if (mainproc) then
@@ -241,7 +251,7 @@ contains
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_sh     = ',rofi_scale_sh
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_nh     = ',rofi_scale_nh
        write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
-       write(logunit,'(2a,l6)') subname,' split_rofs        = ',split_rofs
+       write(logunit,'(2a,l6)') subname,' flds_rofs         = ',split_rofs
        write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
        write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_min = ',rofs_greenland_lat_min
        write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_max = ',rofs_greenland_lat_max
@@ -254,7 +264,6 @@ contains
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
        if (rofi_scale_normalise) bcasttmp(5) = 1
-       if (split_rofs) bcasttmp(6) = 1
 
        rbcasttmp(1) = rofs_antarctic_lat_max
        rbcasttmp(2) = rofs_greenland_lat_min
@@ -275,7 +284,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, restfilm, CX, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_VMBroadcast(vm, bcasttmp, 6, main_task, rc=rc)
+    call ESMF_VMBroadcast(vm, bcasttmp, 5, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rofi_scale_sh, 12, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -289,7 +298,6 @@ contains
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
     rofi_scale_normalise = (bcasttmp(5) == 1)
-    split_rofs = (bcasttmp(6) == 1)
 
     rofs_antarctic_lat_max = rbcasttmp(1)
     rofs_greenland_lat_min = rbcasttmp(2)
@@ -307,7 +315,7 @@ contains
     end select
 
     if (split_rofs .and. trim(datamode) /= 'copyall') then
-       call shr_log_error(subname//' ERROR: split_rofs is only supported for datamode copyall', rc=rc)
+       call shr_log_error(subname//' ERROR: flds_rofs is only supported for datamode copyall', rc=rc)
        return
     end if
     if (split_rofs) then
