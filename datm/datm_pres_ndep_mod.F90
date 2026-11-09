@@ -15,16 +15,16 @@ module datm_pres_ndep_mod
   public :: datm_pres_ndep_advance
 
   ! export state data
-  real(r8), pointer :: Faxa_ndep(:,:) => null()
+  real(r8), pointer, contiguous :: Faxa_ndep(:,:) => null()
 
   ! stream data
-  real(r8), pointer :: strm_Faxa_ndep_nhx_dry(:) => null() ! stream cmip7 ndep data
-  real(r8), pointer :: strm_Faxa_ndep_nhx_wet(:) => null() ! stream cmip7 ndep data
-  real(r8), pointer :: strm_Faxa_ndep_noy_dry(:) => null() ! stream cmip7 ndep data
-  real(r8), pointer :: strm_Faxa_ndep_noy_wet(:) => null() ! stream cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_nhx_dry(:) => null() ! stream cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_nhx_wet(:) => null() ! stream cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_noy_dry(:) => null() ! stream cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_noy_wet(:) => null() ! stream cmip7 ndep data
 
-  real(r8), pointer :: strm_Faxa_ndep_nhx(:)     => null() ! pre-cmip7 ndep data
-  real(r8), pointer :: strm_Faxa_ndep_noy(:)     => null() ! pre-cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_nhx(:)     => null() ! pre-cmip7 ndep data
+  real(r8), pointer, contiguous :: strm_Faxa_ndep_noy(:)     => null() ! pre-cmip7 ndep data
 
   logical :: use_cmip7_ndep
 

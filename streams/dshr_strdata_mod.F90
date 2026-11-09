@@ -126,8 +126,8 @@ module dshr_strdata_mod
      integer                        :: io_format                       ! pio info
      integer                        :: modeldt = 0                     ! model dt in seconds
      type(ESMF_Mesh)                :: model_mesh                      ! model mesh
-     real(r8), pointer              :: model_lon(:) => null()          ! model longitudes
-     real(r8), pointer              :: model_lat(:) => null()          ! model latitudes
+     real(r8), pointer, contiguous              :: model_lon(:) => null()          ! model longitudes
+     real(r8), pointer, contiguous              :: model_lat(:) => null()          ! model latitudes
      integer                        :: model_nxg                       ! model global domain lon size
      integer                        :: model_nyg                       ! model global domain lat size
      integer                        :: model_nzg                       ! model global domain vertical size
@@ -995,19 +995,19 @@ contains
     integer                             :: todmod           ! modified model dates to handle Feb 29
     character(len=32)                   :: lstr             ! local string
     real(r8)                            :: flb,fub          ! factor for lb and ub
-    real(r8) ,pointer                   :: dataptr1d(:)     ! pointer into field bundle
-    real(r8) ,pointer                   :: dataptr1d_lb(:)  ! pointer into field bundle
-    real(r8) ,pointer                   :: dataptr1d_ub(:)  ! pointer into field bundle
-    real(r8) ,pointer                   :: dataptr2d(:,:)   ! pointer into field bundle
-    real(r8) ,pointer                   :: dataptr2d_lb(:,:)! pointer into field bundle
-    real(r8) ,pointer                   :: dataptr2d_ub(:,:)! pointer into field bundle
-    real(r8), pointer                   :: nu_coords(:)     ! allocatable local element mesh lat and lons
-    real(r8), pointer                   :: data2d_src(:,:)  ! pointer into field bundle
-    real(r8), pointer                   :: data2d_dst(:,:)  ! pointer into field bundle
-    real(r8), pointer                   :: data_u_src(:)    ! pointer into field bundle
-    real(r8), pointer                   :: data_v_src(:)    ! pointer into field bundle
-    real(r8), pointer                   :: data_u_dst(:)    ! pointer into field bundle
-    real(r8), pointer                   :: data_v_dst(:)    ! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr1d(:)     ! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr1d_lb(:)  ! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr1d_ub(:)  ! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr2d(:,:)   ! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr2d_lb(:,:)! pointer into field bundle
+    real(r8) ,pointer, contiguous                   :: dataptr2d_ub(:,:)! pointer into field bundle
+    real(r8), pointer, contiguous                   :: nu_coords(:)     ! allocatable local element mesh lat and lons
+    real(r8), pointer, contiguous                   :: data2d_src(:,:)  ! pointer into field bundle
+    real(r8), pointer, contiguous                   :: data2d_dst(:,:)  ! pointer into field bundle
+    real(r8), pointer, contiguous                   :: data_u_src(:)    ! pointer into field bundle
+    real(r8), pointer, contiguous                   :: data_v_src(:)    ! pointer into field bundle
+    real(r8), pointer, contiguous                   :: data_u_dst(:)    ! pointer into field bundle
+    real(r8), pointer, contiguous                   :: data_v_dst(:)    ! pointer into field bundle
     type(ESMF_Time)                     :: timeLB, timeUB   ! lb and ub times
     type(ESMF_TimeInterval)             :: timeint          ! delta time
     character(len=CL)                   :: calendar
@@ -1618,11 +1618,11 @@ contains
     real(r8)                 :: fillvalue_r8
     logical                  :: handlefill = .false.
     integer                  :: old_error_handle
-    real(r8), pointer        :: dataptr(:)
-    real(r8), pointer        :: dataptr1d(:)        ! field bundle data
-    real(r8), pointer        :: dataptr2d(:,:)      ! field bundle data
-    real(r8), pointer        :: dataptr2d_src(:,:)  ! field bundle data
-    real(r8), pointer        :: dataptr2d_dst(:,:)  ! field bundle data
+    real(r8), pointer, contiguous        :: dataptr(:)
+    real(r8), pointer, contiguous        :: dataptr1d(:)        ! field bundle data
+    real(r8), pointer, contiguous        :: dataptr2d(:,:)      ! field bundle data
+    real(r8), pointer, contiguous        :: dataptr2d_src(:,:)  ! field bundle data
+    real(r8), pointer, contiguous        :: dataptr2d_dst(:,:)  ! field bundle data
     real(r4), allocatable    :: data_real1d(:)      ! stream input data
     real(r4), allocatable    :: data_real2d(:,:)    ! stream input data
     real(r8), allocatable    :: data_dbl1d(:)       ! stream input data
@@ -1632,8 +1632,8 @@ contains
     integer                  :: lsize, n
     integer                  :: spatialDim, numOwnedElements
     integer                  :: pio_iovartype
-    real(r8), pointer        :: nu_coords(:)
-    real(r8), pointer        :: data_u_dst(:), data_v_dst(:)
+    real(r8), pointer, contiguous        :: nu_coords(:)
+    real(r8), pointer, contiguous        :: data_u_dst(:), data_v_dst(:)
     real(r8)                 :: lat, lon
     real(r8)                 :: sinlat, sinlon
     real(r8)                 :: coslat, coslon

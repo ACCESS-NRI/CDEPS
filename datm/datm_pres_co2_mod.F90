@@ -14,12 +14,12 @@ module datm_pres_co2_mod
   public :: datm_pres_co2_advance
 
   ! export state data
-  real(r8), pointer :: Sa_co2diag(:) => null()
-  real(r8), pointer :: Sa_co2prog(:) => null()
+  real(r8), pointer, contiguous :: Sa_co2diag(:) => null()
+  real(r8), pointer, contiguous :: Sa_co2prog(:) => null()
 
   ! stream pointer
-  real(r8), pointer :: strm_Sa_co2diag(:) => null()
-  real(r8), pointer :: strm_Sa_co2prog(:) => null()
+  real(r8), pointer, contiguous :: strm_Sa_co2diag(:) => null()
+  real(r8), pointer, contiguous :: strm_Sa_co2prog(:) => null()
 
   character(len=CL) :: datamode
 

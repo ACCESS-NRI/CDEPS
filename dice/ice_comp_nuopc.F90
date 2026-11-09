@@ -98,7 +98,7 @@ module cdeps_dice_comp
   type(fldList_type) , pointer :: fldsExport => null()
 
   ! model mask and model fraction
-  real(r8), pointer            :: model_frac(:) => null()
+  real(r8), pointer, contiguous            :: model_frac(:) => null()
   integer , pointer            :: model_mask(:) => null()
   logical                      :: valid_ice = .true.                  ! used for single column logic (ocn mask > 0)
 
@@ -316,7 +316,7 @@ contains
     type(ESMF_Field)            :: lfield
     character(CL) ,pointer      :: lfieldnamelist(:) => null()
     integer                     :: fieldcount
-    real(r8), pointer           :: fldptr(:)
+    real(r8), pointer, contiguous           :: fldptr(:)
     integer                     :: n
     character(len=*), parameter :: F00   = "('" // trim(modName) // ": ')',8a)"
     character(len=*), parameter :: subname=trim(modName)//':(InitializeRealize) '

@@ -15,14 +15,14 @@ module dwav_datamode_copyall_mod
   public  :: dwav_datamode_copyall_advance
 
   ! export state pointer arrays
-  real(r8), pointer :: Sw_lamult(:)  => null()
-  real(r8), pointer :: Sw_ustokes(:) => null()
-  real(r8), pointer :: Sw_vstokes(:) => null()
+  real(r8), pointer, contiguous :: Sw_lamult(:)  => null()
+  real(r8), pointer, contiguous :: Sw_ustokes(:) => null()
+  real(r8), pointer, contiguous :: Sw_vstokes(:) => null()
 
   ! stream pointer arrays
-  real(r8), pointer :: strm_Sw_lamult(:)  => null()
-  real(r8), pointer :: strm_Sw_ustokes(:) => null()
-  real(r8), pointer :: strm_Sw_vstokes(:) => null()
+  real(r8), pointer, contiguous :: strm_Sw_lamult(:)  => null()
+  real(r8), pointer, contiguous :: strm_Sw_ustokes(:) => null()
+  real(r8), pointer, contiguous :: strm_Sw_vstokes(:) => null()
 
   character(len=*) , parameter :: u_FILE_u = &
        __FILE__

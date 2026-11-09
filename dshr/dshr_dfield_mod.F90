@@ -28,11 +28,11 @@ module dshr_dfield_mod
   ! Linked list node
   type, public :: dfield_type
      ! state data with no ungridded dimensions
-     real(r8), pointer          :: state_data1d(:) => null()
+     real(r8), pointer, contiguous          :: state_data1d(:) => null()
      integer                    :: stream_index = 0
      integer                    :: fldbun_index = 0
      ! state data with ungridded dimensions
-     real(r8), pointer          :: state_data2d(:,:) => null()
+     real(r8), pointer, contiguous          :: state_data2d(:,:) => null()
      integer, pointer           :: stream_indices(:) => null()
      integer, pointer           :: fldbun_indices(:) => null()
      ! linked list pointer
@@ -443,8 +443,8 @@ contains
     type(ESMF_FieldBundle)     :: fldbun_model
     type(ESMF_field)           :: lfield
     type(dfield_type), pointer :: dfield
-    real(r8), pointer          :: data1d(:)
-    real(r8), pointer          :: data2d(:,:)
+    real(r8), pointer, contiguous          :: data1d(:)
+    real(r8), pointer, contiguous          :: data2d(:,:)
     integer                    :: nf
     integer                    :: fldbun_index
     integer                    :: stream_index

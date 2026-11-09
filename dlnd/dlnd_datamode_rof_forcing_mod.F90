@@ -20,27 +20,27 @@ module dlnd_datamode_rof_forcing_mod
    public :: dlnd_datamode_rof_forcing_advance
 
    ! export state pointers
-   real(r8), pointer :: lfrac(:) => null()
-   real(r8), pointer :: Flrl_rofsur_nonh2o_2d(:,:) => null()
-   real(r8), pointer :: Flrl_rofsur_nonh2o_1d(:)   => null()
-   real(r8), pointer :: Flrl_rofsur(:) => null()
-   real(r8), pointer :: Flrl_rofsub(:) => null()
-   real(r8), pointer :: Flrl_rofgwl(:) => null()
-   real(r8), pointer :: Flrl_rofi(:)   => null()
-   real(r8), pointer :: Flrl_irrig(:)  => null()
+   real(r8), pointer, contiguous :: lfrac(:) => null()
+   real(r8), pointer, contiguous :: Flrl_rofsur_nonh2o_2d(:,:) => null()
+   real(r8), pointer, contiguous :: Flrl_rofsur_nonh2o_1d(:)   => null()
+   real(r8), pointer, contiguous :: Flrl_rofsur(:) => null()
+   real(r8), pointer, contiguous :: Flrl_rofsub(:) => null()
+   real(r8), pointer, contiguous :: Flrl_rofgwl(:) => null()
+   real(r8), pointer, contiguous :: Flrl_rofi(:)   => null()
+   real(r8), pointer, contiguous :: Flrl_irrig(:)  => null()
 
    ! stream field pointers
    type, public :: stream_pointer_type
-      real(r8), pointer :: ptr(:) => null()
+      real(r8), pointer, contiguous :: ptr(:) => null()
    end type stream_pointer_type
    type(stream_pointer_type), allocatable :: strm_Flrl_rofsur_nonh2o_2d(:) ! 2dple nonh2o tracers
 
-   real(r8), pointer :: strm_Flrl_rofsur_nonh2o_1d(:) => null() ! onlyl 1 nonh2o tracer
-   real(r8), pointer :: strm_Flrl_rofsur(:) => null()
-   real(r8), pointer :: strm_Flrl_rofsub(:) => null()
-   real(r8), pointer :: strm_Flrl_rofgwl(:) => null()
-   real(r8), pointer :: strm_Flrl_rofi(:)   => null()
-   real(r8), pointer :: strm_Flrl_irrig(:)  => null()
+   real(r8), pointer, contiguous :: strm_Flrl_rofsur_nonh2o_1d(:) => null() ! onlyl 1 nonh2o tracer
+   real(r8), pointer, contiguous :: strm_Flrl_rofsur(:) => null()
+   real(r8), pointer, contiguous :: strm_Flrl_rofsub(:) => null()
+   real(r8), pointer, contiguous :: strm_Flrl_rofgwl(:) => null()
+   real(r8), pointer, contiguous :: strm_Flrl_rofi(:)   => null()
+   real(r8), pointer, contiguous :: strm_Flrl_irrig(:)  => null()
 
    integer :: ntracers_nonh2o
 

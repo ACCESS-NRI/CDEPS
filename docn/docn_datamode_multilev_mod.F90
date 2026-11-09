@@ -16,13 +16,13 @@ module docn_datamode_multilev_mod
   public :: docn_datamode_multilev_advance
 
   ! pointers to export fields
-  real(r8), pointer :: So_omask(:)     => null()    ! real ocean fraction sent to mediator
-  real(r8), pointer :: So_t_depth(:,:) => null()
-  real(r8), pointer :: So_s_depth(:,:) => null()
+  real(r8), pointer, contiguous :: So_omask(:)     => null()    ! real ocean fraction sent to mediator
+  real(r8), pointer, contiguous :: So_t_depth(:,:) => null()
+  real(r8), pointer, contiguous :: So_s_depth(:,:) => null()
 
   ! pointers to stream fields
-  real(r8), pointer :: strm_So_t_depth(:,:) => null()
-  real(r8), pointer :: strm_So_s_depth(:,:) => null()
+  real(r8), pointer, contiguous :: strm_So_t_depth(:,:) => null()
+  real(r8), pointer, contiguous :: strm_So_s_depth(:,:) => null()
 
   integer, parameter :: nlev_export = 30
   real(r8) :: vertical_levels(nlev_export) = (/  &

@@ -39,8 +39,8 @@ module dglc_datamode_noevolve_mod
 
    ! Data structure to enable multiple ice sheets
    type icesheet_ptr_t
-      real(r8), pointer :: ptr(:) => null()     ! pointer to array
-      real(r8), pointer :: ptr2d(:,:) => null() ! pointer to 2d array
+      real(r8), pointer, contiguous :: ptr(:) => null()     ! pointer to array
+      real(r8), pointer, contiguous :: ptr2d(:,:) => null() ! pointer to 2d array
    endtype icesheet_ptr_t
 
    ! Export fields
@@ -251,8 +251,8 @@ contains
       type(var_desc_t)       :: varid
       integer                :: rcode
       integer                :: nxg, nyg
-      real(r8), pointer      :: topog(:)
-      real(r8), pointer      :: thck(:)
+      real(r8), pointer, contiguous      :: topog(:)
+      real(r8), pointer, contiguous      :: thck(:)
       logical                :: exists
       real(r8)               :: rhoi      ! density of ice ~ kg/m^3
       real(r8)               :: rhoo      ! density of sea water ~ kg/m^3

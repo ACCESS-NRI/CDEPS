@@ -16,22 +16,22 @@ module drof_datamode_cplhist_mod
   public :: drof_datamode_cplhist_advance
 
   ! export state pointer arrays
-  real(r8), pointer :: Forr_rofl(:)     => null() ! mediator sends this to ocn
-  real(r8), pointer :: Forr_rofl_glc(:) => null() ! mediator sends this to ocn
-  real(r8), pointer :: Forr_rofi(:)     => null() ! mediator sends this to ocn
-  real(r8), pointer :: Forr_rofi_glc(:) => null() ! mediator sends this to ocn
-  real(r8), pointer :: Flrr_flood(:)    => null() ! mediator sends this to lnd
-  real(r8), pointer :: Flrr_volr(:)     => null() ! mediator sends this to lnd
-  real(r8), pointer :: Flrr_volrmch(:)  => null() ! mediator sends this to lnd
+  real(r8), pointer, contiguous :: Forr_rofl(:)     => null() ! mediator sends this to ocn
+  real(r8), pointer, contiguous :: Forr_rofl_glc(:) => null() ! mediator sends this to ocn
+  real(r8), pointer, contiguous :: Forr_rofi(:)     => null() ! mediator sends this to ocn
+  real(r8), pointer, contiguous :: Forr_rofi_glc(:) => null() ! mediator sends this to ocn
+  real(r8), pointer, contiguous :: Flrr_flood(:)    => null() ! mediator sends this to lnd
+  real(r8), pointer, contiguous :: Flrr_volr(:)     => null() ! mediator sends this to lnd
+  real(r8), pointer, contiguous :: Flrr_volrmch(:)  => null() ! mediator sends this to lnd
 
   ! stream pointer arrays
-  real(r8), pointer :: strm_Forr_rofl(:)     => null()
-  real(r8), pointer :: strm_Forr_rofi(:)     => null()
-  real(r8), pointer :: strm_Forr_rofl_glc(:) => null()
-  real(r8), pointer :: strm_Forr_rofi_glc(:) => null()
-  real(r8), pointer :: strm_Flrr_flood(:)    => null()
-  real(r8), pointer :: strm_Flrr_volr(:)     => null()
-  real(r8), pointer :: strm_Flrr_volrmch(:)  => null()
+  real(r8), pointer, contiguous :: strm_Forr_rofl(:)     => null()
+  real(r8), pointer, contiguous :: strm_Forr_rofi(:)     => null()
+  real(r8), pointer, contiguous :: strm_Forr_rofl_glc(:) => null()
+  real(r8), pointer, contiguous :: strm_Forr_rofi_glc(:) => null()
+  real(r8), pointer, contiguous :: strm_Flrr_flood(:)    => null()
+  real(r8), pointer, contiguous :: strm_Flrr_volr(:)     => null()
+  real(r8), pointer, contiguous :: strm_Flrr_volrmch(:)  => null()
 
   character(len=*) , parameter :: u_FILE_u = &
        __FILE__

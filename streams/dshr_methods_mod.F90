@@ -127,8 +127,8 @@ contains
     type(ESMf_Field)                :: lfield
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    real(r8), pointer               :: dataPtr1d(:)
-    real(r8), pointer               :: dataPtr2d(:,:)
+    real(r8), pointer, contiguous               :: dataPtr1d(:)
+    real(r8), pointer, contiguous               :: dataPtr2d(:,:)
     character(len=*),parameter      :: subname='(dshr_state_diagnose)'
     ! ----------------------------------------------
 
@@ -424,8 +424,8 @@ contains
     ! local variables
     integer           :: lrank
     character(len=CS) :: lstring
-    real(R8), pointer :: dataPtr1d(:)
-    real(R8), pointer :: dataPtr2d(:,:)
+    real(R8), pointer, contiguous :: dataPtr1d(:)
+    real(R8), pointer, contiguous :: dataPtr2d(:,:)
     character(len=*),parameter      :: subname='(dshr_fldbun_FieldDiagnose)'
     ! ----------------------------------------------
 
@@ -479,8 +479,8 @@ contains
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR), pointer :: lfieldnamelist(:)
     character(len=CL)               :: lstring
-    real(R8), pointer               :: dataPtr1d(:)
-    real(R8), pointer               :: dataPtr2d(:,:)
+    real(R8), pointer, contiguous               :: dataPtr1d(:)
+    real(R8), pointer, contiguous               :: dataPtr2d(:,:)
     character(len=*), parameter     :: subname='(dshr_fldbun_diagnose)'
     ! ----------------------------------------------
 

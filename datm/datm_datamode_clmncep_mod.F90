@@ -24,57 +24,57 @@ module datm_datamode_clmncep_mod
   private :: datm_esat  ! determine saturation vapor pressure
 
   ! export state data
-  real(r8), pointer :: Sa_topo(:)    => null()
-  real(r8), pointer :: Sa_z(:)       => null()
-  real(r8), pointer :: Sa_u(:)       => null()
-  real(r8), pointer :: Sa_v(:)       => null()
-  real(r8), pointer :: Sa_tbot(:)    => null()
-  real(r8), pointer :: Sa_ptem(:)    => null()
-  real(r8), pointer :: Sa_shum(:)    => null()
-  real(r8), pointer :: Sa_dens(:)    => null()
-  real(r8), pointer :: Sa_pbot(:)    => null()
-  real(r8), pointer :: Sa_pslv(:)    => null()
-  real(r8), pointer :: Faxa_rainc(:) => null()
-  real(r8), pointer :: Faxa_rainl(:) => null()
-  real(r8), pointer :: Faxa_snowc(:) => null()
-  real(r8), pointer :: Faxa_snowl(:) => null()
-  real(r8), pointer :: Faxa_swndr(:) => null()
-  real(r8), pointer :: Faxa_swndf(:) => null()
-  real(r8), pointer :: Faxa_swvdr(:) => null()
-  real(r8), pointer :: Faxa_swvdf(:) => null()
-  real(r8), pointer :: Faxa_swnet(:) => null()
-  real(r8), pointer :: Faxa_swdn(:)  => null()
-  real(r8), pointer :: Faxa_lwdn(:)  => null()
+  real(r8), pointer, contiguous :: Sa_topo(:)    => null()
+  real(r8), pointer, contiguous :: Sa_z(:)       => null()
+  real(r8), pointer, contiguous :: Sa_u(:)       => null()
+  real(r8), pointer, contiguous :: Sa_v(:)       => null()
+  real(r8), pointer, contiguous :: Sa_tbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_ptem(:)    => null()
+  real(r8), pointer, contiguous :: Sa_shum(:)    => null()
+  real(r8), pointer, contiguous :: Sa_dens(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pslv(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_rainc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_rainl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swnet(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swdn(:)  => null()
+  real(r8), pointer, contiguous :: Faxa_lwdn(:)  => null()
 
   ! import state data pointers
-  real(r8), pointer :: Sx_avsdr(:)   => null()
-  real(r8), pointer :: Sx_anidr(:)   => null()
-  real(r8), pointer :: Sx_avsdf(:)   => null()
-  real(r8), pointer :: Sx_anidf(:)   => null()
+  real(r8), pointer, contiguous :: Sx_avsdr(:)   => null()
+  real(r8), pointer, contiguous :: Sx_anidr(:)   => null()
+  real(r8), pointer, contiguous :: Sx_avsdf(:)   => null()
+  real(r8), pointer, contiguous :: Sx_anidf(:)   => null()
 
   ! stream data pointers
-  real(r8), pointer :: strm_Sa_topo(:)      => null()
-  real(r8), pointer :: strm_Sa_z(:)         => null()
-  real(r8), pointer :: strm_Sa_tbot(:)      => null()
-  real(r8), pointer :: strm_Sa_pbot(:)      => null()
-  real(r8), pointer :: strm_Sa_wind(:)      => null()
-  real(r8), pointer :: strm_Sa_tdew(:)      => null()
-  real(r8), pointer :: strm_Sa_shum(:)      => null()
-  real(r8), pointer :: strm_Sa_rh(:)        => null()
-  real(r8), pointer :: strm_Faxa_lwdn(:)    => null()
-  real(r8), pointer :: strm_Faxa_swdn(:)    => null()
-  real(r8), pointer :: strm_Faxa_swdndf(:)  => null()
-  real(r8), pointer :: strm_Faxa_swdndr(:)  => null()
-  real(r8), pointer :: strm_Faxa_precn(:)   => null()
-  real(r8), pointer :: strm_Faxa_precsf(:)  => null() ! bias correction
-  real(r8), pointer :: strm_Sa_u_af(:)      => null() ! anomaly forcing
-  real(r8), pointer :: strm_Sa_v_af(:)      => null() ! anomaly forcing
-  real(r8), pointer :: strm_Sa_tbot_af(:)   => null() ! anomaly forcing
-  real(r8), pointer :: strm_Sa_pbot_af(:)   => null() ! anomaly forcing
-  real(r8), pointer :: strm_Sa_shum_af(:)   => null() ! anomaly forcing
-  real(r8), pointer :: strm_Faxa_prec_af(:) => null() ! anomaly forcing
-  real(r8), pointer :: strm_Faxa_swdn_af(:) => null() ! anomaly forcing
-  real(r8), pointer :: strm_Faxa_lwdn_af(:) => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Sa_topo(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_z(:)         => null()
+  real(r8), pointer, contiguous :: strm_Sa_tbot(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_pbot(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_wind(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_tdew(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_shum(:)      => null()
+  real(r8), pointer, contiguous :: strm_Sa_rh(:)        => null()
+  real(r8), pointer, contiguous :: strm_Faxa_lwdn(:)    => null()
+  real(r8), pointer, contiguous :: strm_Faxa_swdn(:)    => null()
+  real(r8), pointer, contiguous :: strm_Faxa_swdndf(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_swdndr(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_precn(:)   => null()
+  real(r8), pointer, contiguous :: strm_Faxa_precsf(:)  => null() ! bias correction
+  real(r8), pointer, contiguous :: strm_Sa_u_af(:)      => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Sa_v_af(:)      => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Sa_tbot_af(:)   => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Sa_pbot_af(:)   => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Sa_shum_af(:)   => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Faxa_prec_af(:) => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Faxa_swdn_af(:) => null() ! anomaly forcing
+  real(r8), pointer, contiguous :: strm_Faxa_lwdn_af(:) => null() ! anomaly forcing
 
   ! Other module variables
 

@@ -34,29 +34,29 @@ module datm_datamode_simple_mod
   public  :: datm_datamode_simple_advance
 
   ! export state pointers
-  real(r8), pointer :: Sa_u(:)       => null()
-  real(r8), pointer :: Sa_v(:)       => null()
-  real(r8), pointer :: Sa_z(:)       => null()
-  real(r8), pointer :: Sa_tbot(:)    => null()
-  real(r8), pointer :: Sa_ptem(:)    => null()
-  real(r8), pointer :: Sa_shum(:)    => null()
-  real(r8), pointer :: Sa_pbot(:)    => null()
-  real(r8), pointer :: Sa_dens(:)    => null()
-  real(r8), pointer :: Sa_pslv(:)    => null()
-  real(r8), pointer :: Faxa_lwdn(:)  => null()
-  real(r8), pointer :: Faxa_rainc(:) => null()
-  real(r8), pointer :: Faxa_rainl(:) => null()
-  real(r8), pointer :: Faxa_snowc(:) => null()
-  real(r8), pointer :: Faxa_snowl(:) => null()
-  real(r8), pointer :: Faxa_swndr(:) => null()
-  real(r8), pointer :: Faxa_swndf(:) => null()
-  real(r8), pointer :: Faxa_swvdr(:) => null()
-  real(r8), pointer :: Faxa_swvdf(:) => null()
-  real(r8), pointer :: Faxa_swnet(:) => null()
+  real(r8), pointer, contiguous :: Sa_u(:)       => null()
+  real(r8), pointer, contiguous :: Sa_v(:)       => null()
+  real(r8), pointer, contiguous :: Sa_z(:)       => null()
+  real(r8), pointer, contiguous :: Sa_tbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_ptem(:)    => null()
+  real(r8), pointer, contiguous :: Sa_shum(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_dens(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pslv(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_lwdn(:)  => null()
+  real(r8), pointer, contiguous :: Faxa_rainc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_rainl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swnet(:) => null()
 
   ! othe module arrays
-  real(R8), pointer :: yc(:)                 ! array of model latitudes
-  real(R8), pointer :: xc(:)                 ! array of model longitudes
+  real(R8), pointer, contiguous :: yc(:)                 ! array of model latitudes
+  real(R8), pointer, contiguous :: xc(:)                 ! array of model longitudes
 
   ! constant forcing values to be set via const_forcing_nml
   real(R8) :: dn10 = 1.204_R8
@@ -190,7 +190,7 @@ contains
     integer           :: lsize
     integer           :: spatialDim         ! number of dimension in mesh
     integer           :: numOwnedElements   ! size of mesh
-    real(r8), pointer :: ownedElemCoords(:) ! mesh lat and lons
+    real(r8), pointer, contiguous :: ownedElemCoords(:) ! mesh lat and lons
     character(len=*), parameter :: subname='(datm_init_pointers): '
     !-------------------------------------------------------------------------------
 

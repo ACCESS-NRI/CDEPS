@@ -21,12 +21,12 @@ module drof_datamode_copyall_mod
   public  :: drof_datamode_copyall_rofi_scale_annual_mean
 
   ! export state pointer arrays
-  real(r8), pointer :: Forr_rofl(:) => null()
-  real(r8), pointer :: Forr_rofi(:) => null()
+  real(r8), pointer, contiguous :: Forr_rofl(:) => null()
+  real(r8), pointer, contiguous :: Forr_rofi(:) => null()
 
   ! stream pointer arrays
-  real(r8), pointer :: strm_Forr_rofl(:) => null() ! optional, but at least one provided in stream
-  real(r8), pointer :: strm_Forr_rofi(:) => null() ! optional, but at least one provided in stream
+  real(r8), pointer, contiguous :: strm_Forr_rofl(:) => null() ! optional, but at least one provided in stream
+  real(r8), pointer, contiguous :: strm_Forr_rofi(:) => null() ! optional, but at least one provided in stream
 
   character(len=*) , parameter :: u_FILE_u = &
        __FILE__

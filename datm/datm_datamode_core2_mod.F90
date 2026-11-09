@@ -35,46 +35,46 @@ module datm_datamode_core2_mod
   private :: datm_get_adjustment_factors
 
   ! export state pointers
-  real(r8), pointer :: Sa_u(:)       => null()
-  real(r8), pointer :: Sa_v(:)       => null()
-  real(r8), pointer :: Sa_u10m(:)    => null()
-  real(r8), pointer :: Sa_v10m(:)    => null()
-  real(r8), pointer :: Sa_z(:)       => null()
-  real(r8), pointer :: Sa_tbot(:)    => null()
-  real(r8), pointer :: Sa_ptem(:)    => null()
-  real(r8), pointer :: Sa_shum(:)    => null()
-  real(r8), pointer :: Sa_pbot(:)    => null()
-  real(r8), pointer :: Sa_pslv(:)    => null()
-  real(r8), pointer :: Sa_dens(:)    => null()
-  real(r8), pointer :: Faxa_rainc(:) => null()
-  real(r8), pointer :: Faxa_rainl(:) => null()
-  real(r8), pointer :: Faxa_snowc(:) => null()
-  real(r8), pointer :: Faxa_snowl(:) => null()
-  real(r8), pointer :: Faxa_swndr(:) => null()
-  real(r8), pointer :: Faxa_swndf(:) => null()
-  real(r8), pointer :: Faxa_swvdr(:) => null()
-  real(r8), pointer :: Faxa_swvdf(:) => null()
-  real(r8), pointer :: Faxa_swnet(:) => null()
-  real(r8), pointer :: Faxa_swdn(:)  => null()
-  real(r8), pointer :: Faxa_lwdn(:)  => null()
+  real(r8), pointer, contiguous :: Sa_u(:)       => null()
+  real(r8), pointer, contiguous :: Sa_v(:)       => null()
+  real(r8), pointer, contiguous :: Sa_u10m(:)    => null()
+  real(r8), pointer, contiguous :: Sa_v10m(:)    => null()
+  real(r8), pointer, contiguous :: Sa_z(:)       => null()
+  real(r8), pointer, contiguous :: Sa_tbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_ptem(:)    => null()
+  real(r8), pointer, contiguous :: Sa_shum(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pbot(:)    => null()
+  real(r8), pointer, contiguous :: Sa_pslv(:)    => null()
+  real(r8), pointer, contiguous :: Sa_dens(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_rainc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_rainl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowc(:) => null()
+  real(r8), pointer, contiguous :: Faxa_snowl(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swndf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdr(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdf(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swnet(:) => null()
+  real(r8), pointer, contiguous :: Faxa_swdn(:)  => null()
+  real(r8), pointer, contiguous :: Faxa_lwdn(:)  => null()
 
   ! required stream data points
-  real(r8), pointer :: strm_Faxa_prec(:)  => null()
-  real(r8), pointer :: strm_Faxa_swdn(:)  => null()
-  real(r8), pointer :: strm_Faxa_lwdn(:)  => null()
-  real(r8), pointer :: strm_Sa_pslv(:)    => null()
-  real(r8), pointer :: strm_Sa_tbot(:)    => null()
-  real(r8), pointer :: strm_Sa_shum(:)    => null()
-  real(r8), pointer :: strm_Sa_dens(:)    => null()
-  real(r8), pointer :: strm_Sa_u(:)       => null()
-  real(r8), pointer :: strm_Sa_v(:)       => null()
-  real(r8), pointer :: strm_tarcf(:)      => null()
+  real(r8), pointer, contiguous :: strm_Faxa_prec(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_swdn(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_lwdn(:)  => null()
+  real(r8), pointer, contiguous :: strm_Sa_pslv(:)    => null()
+  real(r8), pointer, contiguous :: strm_Sa_tbot(:)    => null()
+  real(r8), pointer, contiguous :: strm_Sa_shum(:)    => null()
+  real(r8), pointer, contiguous :: strm_Sa_dens(:)    => null()
+  real(r8), pointer, contiguous :: strm_Sa_u(:)       => null()
+  real(r8), pointer, contiguous :: strm_Sa_v(:)       => null()
+  real(r8), pointer, contiguous :: strm_tarcf(:)      => null()
 
   ! other module arrays
-  real(R8), pointer :: windFactor(:)
-  real(R8), pointer :: winddFactor(:)
-  real(R8), pointer :: qsatFactor(:)
-  real(R8), pointer :: yc(:)                 ! array of model latitudes
+  real(R8), pointer, contiguous :: windFactor(:)
+  real(R8), pointer, contiguous :: winddFactor(:)
+  real(R8), pointer, contiguous :: qsatFactor(:)
+  real(R8), pointer, contiguous :: yc(:)                 ! array of model latitudes
 
   ! constants
   real(R8) , parameter :: tKFrz    = SHR_CONST_TKFRZ
@@ -162,7 +162,7 @@ contains
     integer           :: lsize
     integer           :: spatialDim         ! number of dimension in mesh
     integer           :: numOwnedElements   ! size of mesh
-    real(r8), pointer :: ownedElemCoords(:) ! mesh lat and lons
+    real(r8), pointer, contiguous :: ownedElemCoords(:) ! mesh lat and lons
     character(len=*), parameter :: subname='(datm_init_pointers): '
     !-------------------------------------------------------------------------------
 
@@ -433,7 +433,7 @@ contains
     type(io_desc_t)        :: pio_iodesc
     integer                :: rcode
     integer                :: nxg, nyg
-    real(r8), pointer      :: data(:)
+    real(r8), pointer, contiguous      :: data(:)
     integer                :: srcTermProcessing_Value = 0
     character(len=*) ,parameter :: subName =  '(datm_get_adjustment_factors) '
     !-------------------------------------------------------------------------------

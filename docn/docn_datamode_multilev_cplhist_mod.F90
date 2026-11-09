@@ -18,13 +18,13 @@ module docn_datamode_multilev_cplhist_mod
   public :: docn_datamode_multilev_cplhist_advance
 
   ! export state pointers
-  real(r8), pointer :: So_omask(:)     => null()    ! real ocean fraction sent to mediator
-  real(r8), pointer :: So_t_depth(:,:) => null()
-  real(r8), pointer :: So_s_depth(:,:) => null()
+  real(r8), pointer, contiguous :: So_omask(:)     => null()    ! real ocean fraction sent to mediator
+  real(r8), pointer, contiguous :: So_t_depth(:,:) => null()
+  real(r8), pointer, contiguous :: So_s_depth(:,:) => null()
 
   ! stream field pointers
   type, public :: stream_pointer_type
-     real(r8), pointer :: ptr(:)
+     real(r8), pointer, contiguous :: ptr(:)
   end type stream_pointer_type
   type(stream_pointer_type), allocatable :: strm_So_t_depth(:)
   type(stream_pointer_type), allocatable :: strm_So_s_depth(:)

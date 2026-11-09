@@ -19,14 +19,14 @@ module dlnd_datamode_glc_forcing_mod
    public :: dlnd_datamode_glc_forcing_advance
 
    ! export state pointer
-   real(r8), pointer :: lfrac(:)            => null()
-   real(r8), pointer :: Sl_tsrf_elev(:,:)   => null()
-   real(r8), pointer :: Sl_topo_elev(:,:)   => null()
-   real(r8), pointer :: Flgl_qice_elev(:,:) => null()
+   real(r8), pointer, contiguous :: lfrac(:)            => null()
+   real(r8), pointer, contiguous :: Sl_tsrf_elev(:,:)   => null()
+   real(r8), pointer, contiguous :: Sl_topo_elev(:,:)   => null()
+   real(r8), pointer, contiguous :: Flgl_qice_elev(:,:) => null()
 
    ! stream pointers (1d)
    type, public :: stream_pointer_type
-      real(r8), pointer :: ptr(:) => null()
+      real(r8), pointer, contiguous :: ptr(:) => null()
    end type stream_pointer_type
    type(stream_pointer_type), allocatable :: strm_Sl_tsrf_elev(:)
    type(stream_pointer_type), allocatable :: strm_Sl_topo_elev(:)

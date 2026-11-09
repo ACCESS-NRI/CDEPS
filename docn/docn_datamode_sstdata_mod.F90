@@ -17,14 +17,14 @@ module docn_datamode_sstdata_mod
   public  :: docn_datamode_sstdata_advance
 
   ! export fields
-  real(r8), pointer :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
-  real(r8), pointer :: So_t(:)      => null()
-  real(r8), pointer :: So_u(:)      => null()
-  real(r8), pointer :: So_v(:)      => null()
-  real(r8), pointer :: So_s(:)      => null()
+  real(r8), pointer, contiguous :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
+  real(r8), pointer, contiguous :: So_t(:)      => null()
+  real(r8), pointer, contiguous :: So_u(:)      => null()
+  real(r8), pointer, contiguous :: So_v(:)      => null()
+  real(r8), pointer, contiguous :: So_s(:)      => null()
 
   ! pointer to stream field
-  real(r8), pointer :: strm_So_t(:) => null()
+  real(r8), pointer, contiguous :: strm_So_t(:) => null()
 
   real(r8) , parameter :: tkfrz   = shr_const_tkfrz       ! freezing point, fresh water (kelvin)
   real(r8) , parameter :: ocnsalt = shr_const_ocn_ref_sal ! ocean reference salinity

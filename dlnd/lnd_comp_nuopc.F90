@@ -93,7 +93,7 @@ module cdeps_dlnd_comp
   type(fldList_type) , pointer :: fldsExport => null()
 
   ! model mask and model fraction
-  real(r8), pointer            :: model_frac(:) => null()
+  real(r8), pointer, contiguous            :: model_frac(:) => null()
   integer , pointer            :: model_mask(:) => null()
 
   ! module constants

@@ -111,7 +111,7 @@ module cdeps_drof_comp
   type(fldList_type) , pointer :: fldsExport => null()
 
   ! grid mask and fraction
-  real(r8), pointer :: model_frac(:) ! currently not used
+  real(r8), pointer, contiguous :: model_frac(:) ! currently not used
   integer , pointer :: model_mask(:) ! currently not used
 
   character(len=*) , parameter     :: u_FILE_u = &

@@ -231,7 +231,7 @@ contains
     integer           :: mytask
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
-    real(r8), pointer :: farrayptr(:,:)
+    real(r8), pointer, contiguous :: farrayptr(:,:)
     real(r8)          :: tmp(1)
     character(len=*), parameter :: subname='(state_getscalar)'
     ! ----------------------------------------------
@@ -283,7 +283,7 @@ contains
     integer           :: mytask
     type(ESMF_Field)  :: lfield
     type(ESMF_VM)     :: vm
-    real(r8), pointer :: farrayptr(:,:)
+    real(r8), pointer, contiguous :: farrayptr(:,:)
     character(len=*), parameter :: subname='(state_setscalar)'
     ! ----------------------------------------------
 
@@ -328,8 +328,8 @@ contains
     type(ESMf_Field)                :: lfield
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
-    real(r8), pointer               :: dataPtr1d(:)
-    real(r8), pointer               :: dataPtr2d(:,:)
+    real(r8), pointer, contiguous               :: dataPtr1d(:)
+    real(r8), pointer, contiguous               :: dataPtr2d(:,:)
     character(len=*),parameter      :: subname='(state_diagnose)'
     ! ----------------------------------------------
 

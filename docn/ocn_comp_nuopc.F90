@@ -118,7 +118,7 @@ module cdeps_docn_comp
   type(fldList_type) , pointer :: fldsExport => null()
 
   ! model mask and model fraction
-  real(r8), pointer            :: model_frac(:) => null()
+  real(r8), pointer, contiguous            :: model_frac(:) => null()
   integer , pointer            :: model_mask(:) => null()
   logical                      :: valid_ocn = .true. ! used for single column logic
 
@@ -373,7 +373,7 @@ contains
     type(ESMF_Field)       :: lfield
     character(CL) ,pointer :: lfieldnamelist(:) => null()
     integer                :: fieldcount
-    real(r8), pointer      :: fldptr(:)
+    real(r8), pointer, contiguous      :: fldptr(:)
     integer                :: n
     integer                :: imask
     real(r8)               :: rmask

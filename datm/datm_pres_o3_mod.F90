@@ -14,10 +14,10 @@ module datm_pres_o3_mod
   public :: datm_pres_o3_advance
 
   ! export state data
-  real(r8), pointer :: Sa_o3(:) => null()
+  real(r8), pointer, contiguous :: Sa_o3(:) => null()
 
   ! stream pointer
-  real(r8), pointer :: strm_Sa_o3(:) => null()
+  real(r8), pointer, contiguous :: strm_Sa_o3(:) => null()
 
   character(len=*), parameter :: u_FILE_u = &
        __FILE__

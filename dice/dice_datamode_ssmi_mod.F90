@@ -23,62 +23,62 @@ module dice_datamode_ssmi_mod
   public  :: dice_datamode_ssmi_restart_read
 
   ! restart fields
-  real(r8), pointer, public :: water(:) => null()
+  real(r8), pointer, contiguous, public :: water(:) => null()
 
   ! stream pointer
-  real(r8), pointer :: strm_Si_ifrac(:)  => null()
+  real(r8), pointer, contiguous :: strm_Si_ifrac(:)  => null()
 
   ! internal fields
-  real(r8), pointer :: yc(:)      => null() ! mesh lats (degrees)
+  real(r8), pointer, contiguous :: yc(:)      => null() ! mesh lats (degrees)
   integer , pointer :: imask(:)   => null()
 
   ! export fields
-  real(r8), pointer ::  Si_imask(:)      => null()
-  real(r8), pointer ::  Si_ifrac(:)      => null()
-  real(r8), pointer ::  Si_t(:)          => null()
-  real(r8), pointer ::  Si_tref(:)       => null()
-  real(r8), pointer ::  Si_qref(:)       => null()
-  real(r8), pointer ::  Si_avsdr(:)      => null()
-  real(r8), pointer ::  Si_anidr(:)      => null()
-  real(r8), pointer ::  Si_avsdf(:)      => null()
-  real(r8), pointer ::  Si_anidf(:)      => null()
-  real(r8), pointer ::  Faii_swnet(:)    => null()
-  real(r8), pointer ::  Faii_sen(:)      => null()
-  real(r8), pointer ::  Faii_lat(:)      => null()
-  real(r8), pointer ::  Faii_lwup(:)     => null()
-  real(r8), pointer ::  Faii_evap(:)     => null()
-  real(r8), pointer ::  Faii_taux(:)     => null()
-  real(r8), pointer ::  Faii_tauy(:)     => null()
-  real(r8), pointer ::  Fioi_melth(:)    => null()
-  real(r8), pointer ::  Fioi_meltw(:)    => null()
-  real(r8), pointer ::  Fioi_swpen(:)    => null()
-  real(r8), pointer ::  Fioi_taux(:)     => null()
-  real(r8), pointer ::  Fioi_tauy(:)     => null()
-  real(r8), pointer ::  Fioi_salt(:)     => null()
-  real(r8), pointer ::  Fioi_bcpho(:)    => null()
-  real(r8), pointer ::  Fioi_bcphi(:)    => null()
-  real(r8), pointer ::  Fioi_flxdst(:)   => null()
-  real(r8), pointer ::  Si_ifrac_n(:,:)  => null()
-  real(r8), pointer ::  Fioi_swpen_ifrac_n(:,:) => null()
+  real(r8), pointer, contiguous ::  Si_imask(:)      => null()
+  real(r8), pointer, contiguous ::  Si_ifrac(:)      => null()
+  real(r8), pointer, contiguous ::  Si_t(:)          => null()
+  real(r8), pointer, contiguous ::  Si_tref(:)       => null()
+  real(r8), pointer, contiguous ::  Si_qref(:)       => null()
+  real(r8), pointer, contiguous ::  Si_avsdr(:)      => null()
+  real(r8), pointer, contiguous ::  Si_anidr(:)      => null()
+  real(r8), pointer, contiguous ::  Si_avsdf(:)      => null()
+  real(r8), pointer, contiguous ::  Si_anidf(:)      => null()
+  real(r8), pointer, contiguous ::  Faii_swnet(:)    => null()
+  real(r8), pointer, contiguous ::  Faii_sen(:)      => null()
+  real(r8), pointer, contiguous ::  Faii_lat(:)      => null()
+  real(r8), pointer, contiguous ::  Faii_lwup(:)     => null()
+  real(r8), pointer, contiguous ::  Faii_evap(:)     => null()
+  real(r8), pointer, contiguous ::  Faii_taux(:)     => null()
+  real(r8), pointer, contiguous ::  Faii_tauy(:)     => null()
+  real(r8), pointer, contiguous ::  Fioi_melth(:)    => null()
+  real(r8), pointer, contiguous ::  Fioi_meltw(:)    => null()
+  real(r8), pointer, contiguous ::  Fioi_swpen(:)    => null()
+  real(r8), pointer, contiguous ::  Fioi_taux(:)     => null()
+  real(r8), pointer, contiguous ::  Fioi_tauy(:)     => null()
+  real(r8), pointer, contiguous ::  Fioi_salt(:)     => null()
+  real(r8), pointer, contiguous ::  Fioi_bcpho(:)    => null()
+  real(r8), pointer, contiguous ::  Fioi_bcphi(:)    => null()
+  real(r8), pointer, contiguous ::  Fioi_flxdst(:)   => null()
+  real(r8), pointer, contiguous ::  Si_ifrac_n(:,:)  => null()
+  real(r8), pointer, contiguous ::  Fioi_swpen_ifrac_n(:,:) => null()
 
   ! import fields
-  real(r8), pointer :: Faxa_swvdr(:)    => null()
-  real(r8), pointer :: Faxa_swvdf(:)    => null()
-  real(r8), pointer :: Faxa_swndr(:)    => null()
-  real(r8), pointer :: Faxa_swndf(:)    => null()
-  real(r8), pointer :: Fioo_q(:)        => null()
-  real(r8), pointer :: Sa_z(:)          => null()
-  real(r8), pointer :: Sa_u(:)          => null()
-  real(r8), pointer :: Sa_v(:)          => null()
-  real(r8), pointer :: Sa_ptem(:)       => null()
-  real(r8), pointer :: Sa_shum(:)       => null()
-  real(r8), pointer :: Sa_dens(:)       => null()
-  real(r8), pointer :: Sa_tbot(:)       => null()
-  real(r8), pointer :: So_s(:)          => null()
-  real(r8), pointer :: Faxa_bcph(:,:)   => null()
-  real(r8), pointer :: Faxa_ocph(:,:)   => null()
-  real(r8), pointer :: Faxa_dstdry(:,:) => null()
-  real(r8), pointer :: Faxa_dstwet(:,:) => null()
+  real(r8), pointer, contiguous :: Faxa_swvdr(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_swvdf(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_swndr(:)    => null()
+  real(r8), pointer, contiguous :: Faxa_swndf(:)    => null()
+  real(r8), pointer, contiguous :: Fioo_q(:)        => null()
+  real(r8), pointer, contiguous :: Sa_z(:)          => null()
+  real(r8), pointer, contiguous :: Sa_u(:)          => null()
+  real(r8), pointer, contiguous :: Sa_v(:)          => null()
+  real(r8), pointer, contiguous :: Sa_ptem(:)       => null()
+  real(r8), pointer, contiguous :: Sa_shum(:)       => null()
+  real(r8), pointer, contiguous :: Sa_dens(:)       => null()
+  real(r8), pointer, contiguous :: Sa_tbot(:)       => null()
+  real(r8), pointer, contiguous :: So_s(:)          => null()
+  real(r8), pointer, contiguous :: Faxa_bcph(:,:)   => null()
+  real(r8), pointer, contiguous :: Faxa_ocph(:,:)   => null()
+  real(r8), pointer, contiguous :: Faxa_dstdry(:,:) => null()
+  real(r8), pointer, contiguous :: Faxa_dstwet(:,:) => null()
 
   ! surface albedo constants
   real(r8) , parameter :: snwfrac = 0.286_r8 ! snow cover fraction ~ [0,1]
@@ -217,7 +217,7 @@ contains
     type(ESMF_Array)    :: elemMaskArray
     integer             :: spatialDim         ! number of dimension in mesh
     integer             :: numOwnedElements   ! size of mesh
-    real(r8), pointer   :: ownedElemCoords(:) ! mesh lat and lons
+    real(r8), pointer, contiguous   :: ownedElemCoords(:) ! mesh lat and lons
     character(len=*), parameter :: subname='(dice_init_pointers): '
     !-------------------------------------------------------------------------------
 

@@ -14,29 +14,29 @@ module datm_pres_aero_mod
   public :: datm_pres_aero_advance
 
   ! pointers to export state data
-  real(r8), pointer :: Faxa_bcph(:,:)   => null()
-  real(r8), pointer :: Faxa_ocph(:,:)   => null()
-  real(r8), pointer :: Faxa_dstwet(:,:) => null()
-  real(r8), pointer :: Faxa_dstdry(:,:) => null()
+  real(r8), pointer, contiguous :: Faxa_bcph(:,:)   => null()
+  real(r8), pointer, contiguous :: Faxa_ocph(:,:)   => null()
+  real(r8), pointer, contiguous :: Faxa_dstwet(:,:) => null()
+  real(r8), pointer, contiguous :: Faxa_dstdry(:,:) => null()
 
   ! pointers to stream data
-  real(r8), pointer :: strm_Faxa_bcphidry(:) => null()
-  real(r8), pointer :: strm_Faxa_bcphiwet(:) => null()
-  real(r8), pointer :: strm_Faxa_bcphodry(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_bcphidry(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_bcphiwet(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_bcphodry(:) => null()
 
-  real(r8), pointer :: strm_Faxa_ocphidry(:) => null()
-  real(r8), pointer :: strm_Faxa_ocphiwet(:) => null()
-  real(r8), pointer :: strm_Faxa_ocphodry(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_ocphidry(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_ocphiwet(:) => null()
+  real(r8), pointer, contiguous :: strm_Faxa_ocphodry(:) => null()
 
-  real(r8), pointer :: strm_Faxa_dstwet1(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstwet2(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstwet3(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstwet4(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstwet1(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstwet2(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstwet3(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstwet4(:)  => null()
 
-  real(r8), pointer :: strm_Faxa_dstdry1(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstdry2(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstdry3(:)  => null()
-  real(r8), pointer :: strm_Faxa_dstdry4(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstdry1(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstdry2(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstdry3(:)  => null()
+  real(r8), pointer, contiguous :: strm_Faxa_dstdry4(:)  => null()
 
   character(len=*), parameter :: u_FILE_u = &
        __FILE__

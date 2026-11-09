@@ -16,13 +16,13 @@ module docn_datamode_aquaplanet_mod
   public :: docn_datamode_aquaplanet_advance
 
   ! export fields
-  real(r8), pointer    :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
-  real(r8), pointer    :: So_t(:)      => null()
-  real(r8), pointer    :: So_u(:)      => null()
-  real(r8), pointer    :: So_v(:)      => null()
+  real(r8), pointer, contiguous    :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
+  real(r8), pointer, contiguous    :: So_t(:)      => null()
+  real(r8), pointer, contiguous    :: So_u(:)      => null()
+  real(r8), pointer, contiguous    :: So_v(:)      => null()
 
   ! model mesh lats and lons in radians
-  real(r8), pointer    :: rlon(:), rlat(:)
+  real(r8), pointer, contiguous    :: rlon(:), rlat(:)
 
   ! parameters
   real(r8) , parameter :: tkfrz = shr_const_tkfrz ! freezing point, fresh water (kelvin)
@@ -131,7 +131,7 @@ contains
     integer           :: spatialDim         ! number of dimension in mesh
     integer           :: numOwnedElements   ! size of mesh
     real(r8)          :: tmp, tmp1
-    real(r8), pointer :: ownedElemCoords(:) ! mesh lat and lons
+    real(r8), pointer, contiguous :: ownedElemCoords(:) ! mesh lat and lons
     character(len=*), parameter :: subname='(docn_datamode_aquaplanet): '
     !-------------------------------------------------------------------------------
 

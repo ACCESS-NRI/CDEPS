@@ -27,39 +27,39 @@ module docn_datamode_som_mod
   public :: docn_datamode_som_restart_write
 
   ! pointers to export fields
-  real(r8), pointer :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
-  real(r8), pointer :: So_t(:)      => null()
-  real(r8), pointer :: So_s(:)      => null()
-  real(r8), pointer :: So_u(:)      => null()
-  real(r8), pointer :: So_v(:)      => null()
-  real(r8), pointer :: So_dhdx(:)   => null()
-  real(r8), pointer :: So_dhdy(:)   => null()
-  real(r8), pointer :: So_bldepth(:)   => null()
-  real(r8), pointer :: Fioo_q(:)    => null()
-  real(r8), pointer :: So_fswpen(:) => null()
+  real(r8), pointer, contiguous :: So_omask(:)  => null()    ! real ocean fraction sent to mediator
+  real(r8), pointer, contiguous :: So_t(:)      => null()
+  real(r8), pointer, contiguous :: So_s(:)      => null()
+  real(r8), pointer, contiguous :: So_u(:)      => null()
+  real(r8), pointer, contiguous :: So_v(:)      => null()
+  real(r8), pointer, contiguous :: So_dhdx(:)   => null()
+  real(r8), pointer, contiguous :: So_dhdy(:)   => null()
+  real(r8), pointer, contiguous :: So_bldepth(:)   => null()
+  real(r8), pointer, contiguous :: Fioo_q(:)    => null()
+  real(r8), pointer, contiguous :: So_fswpen(:) => null()
 
   ! pointers to import  fields
-  real(r8), pointer :: Foxx_swnet(:) => null()
-  real(r8), pointer :: Foxx_lwup(:)  => null()
-  real(r8), pointer :: Foxx_sen(:)   => null()
-  real(r8), pointer :: Foxx_lat(:)   => null()
-  real(r8), pointer :: Faxa_lwdn(:)  => null()
-  real(r8), pointer :: Faxa_snow(:)  => null()
-  real(r8), pointer :: Fioi_melth(:) => null()
-  real(r8), pointer :: Foxx_rofi(:)  => null()
+  real(r8), pointer, contiguous :: Foxx_swnet(:) => null()
+  real(r8), pointer, contiguous :: Foxx_lwup(:)  => null()
+  real(r8), pointer, contiguous :: Foxx_sen(:)   => null()
+  real(r8), pointer, contiguous :: Foxx_lat(:)   => null()
+  real(r8), pointer, contiguous :: Faxa_lwdn(:)  => null()
+  real(r8), pointer, contiguous :: Faxa_snow(:)  => null()
+  real(r8), pointer, contiguous :: Fioi_melth(:) => null()
+  real(r8), pointer, contiguous :: Foxx_rofi(:)  => null()
 
   ! pointers to stream fields
-  real(r8), pointer :: strm_So_t(:)    => null()
-  real(r8), pointer :: strm_So_s(:)    => null()
-  real(r8), pointer :: strm_So_u(:)    => null()
-  real(r8), pointer :: strm_So_v(:)    => null()
-  real(r8), pointer :: strm_So_dhdx(:) => null()
-  real(r8), pointer :: strm_So_dhdy(:) => null()
-  real(r8), pointer :: strm_So_h(:)    => null()
-  real(r8), pointer :: strm_So_qbot(:) => null()
+  real(r8), pointer, contiguous :: strm_So_t(:)    => null()
+  real(r8), pointer, contiguous :: strm_So_s(:)    => null()
+  real(r8), pointer, contiguous :: strm_So_u(:)    => null()
+  real(r8), pointer, contiguous :: strm_So_v(:)    => null()
+  real(r8), pointer, contiguous :: strm_So_dhdx(:) => null()
+  real(r8), pointer, contiguous :: strm_So_dhdy(:) => null()
+  real(r8), pointer, contiguous :: strm_So_h(:)    => null()
+  real(r8), pointer, contiguous :: strm_So_qbot(:) => null()
 
   ! restart fields
-  real(R8), public, pointer :: somtp(:)     ! SOM ocean temperature needed for restart
+  real(R8), public, pointer, contiguous :: somtp(:)     ! SOM ocean temperature needed for restart
 
   real(R8) :: dt ! real model timestep
 

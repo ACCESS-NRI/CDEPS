@@ -768,7 +768,7 @@ contains
     integer           :: mytask
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
-    real(r8), pointer :: farrayptr(:,:)
+    real(r8), pointer, contiguous :: farrayptr(:,:)
     real(r8)          :: tmp(1)
     character(len=*), parameter :: subname='(state_getscalar)'
     ! ----------------------------------------------
@@ -818,7 +818,7 @@ contains
     integer           :: mytask
     type(ESMF_Field)  :: lfield
     type(ESMF_VM)     :: vm
-    real(r8), pointer :: farrayptr(:,:)
+    real(r8), pointer, contiguous :: farrayptr(:,:)
     character(len=*), parameter :: subname='(state_setscalar)'
     ! ----------------------------------------------
 
@@ -1020,8 +1020,8 @@ contains
     integer                :: dstMaskValue = -987987 ! spval for RH mask values
     integer                :: srcTermProcessing_Value = 0
     logical                :: checkflag = .false.
-    real(r8) , pointer     :: mask_src(:) ! on mesh created from meshfile_mask
-    real(r8) , pointer     :: dataptr1d(:)
+    real(r8) , pointer, contiguous     :: mask_src(:) ! on mesh created from meshfile_mask
+    real(r8) , pointer, contiguous     :: dataptr1d(:)
     type(ESMF_DistGrid)    :: distgrid_mask
     type(ESMF_Array)       :: elemMaskArray
     integer                :: lsize_mask, lsize_dst
