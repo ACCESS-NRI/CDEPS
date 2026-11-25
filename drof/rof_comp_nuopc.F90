@@ -93,13 +93,18 @@ module cdeps_drof_comp
   logical                      :: rofi_scale_normalise = .false. ! true => rescale so the annual mean scale factor is 1
                                                               ! (365 day year), i.e. no change to the annual Forr_rofi
                                                               ! total for constant input
-  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds below.
-                                                              ! Set by the flds_rofs attribute
-  real(r8)                     :: rofs_antarctic_lat_max = -60._r8  ! Lat at or south of which all liquid runoff is assigned to Forr_rofs
-  real(r8)                     :: rofs_greenland_lat_min = 58._r8   ! Min lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
-  real(r8)                     :: rofs_greenland_lat_max = 85._r8   ! Max lat of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs
-  real(r8)                     :: rofs_greenland_lon_min = -110._r8 ! Min lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs [-180,180)
-  real(r8)                     :: rofs_greenland_lon_max = -10._r8  ! Max lon of Greenland box where ice discharge is split evenly between Forr_rofi and Forr_rofs [-180,180)
+  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds
+                                                              ! below. Set by the flds_rofs attribute
+  real(r8)                     :: rofs_antarctic_lat_max = -60._r8 ! Lat at/south of which Forr_rofl/i are (partly) sent
+                                                              ! to Forr_rofs
+  real(r8)                     :: rofs_greenland_lat_bnds(2) = (/58._r8, 85._r8/) ! Min/max lat of Greenland box where
+                                                              ! Forr_rofl/i are (partly) sent to Forr_rofs
+  real(r8)                     :: rofs_greenland_lon_bnds(2) = (/-110._r8, -10._r8/) ! Min/max lon of Greenland box where
+                                                              ! Forr_rofl/i are (partly) sent to Forr_rofs
+  real(r8)                     :: rofs_antarctic_liq_frac = 1.0_r8 ! Fraction of Forr_rofl sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofs_antarctic_ice_frac = 0.0_r8 ! Fraction of Forr_rofi sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofs_greenland_liq_frac = 0.0_r8 ! Fraction of Forr_rofl sent to Forr_rofs around Greenland
+  real(r8)                     :: rofs_greenland_ice_frac = 0.5_r8 ! Fraction of Forr_rofi sent to Forr_rofs around Greenland
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -199,8 +204,9 @@ contains
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
          rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise, &
-         rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
-         rofs_greenland_lon_min, rofs_greenland_lon_max
+         rofs_antarctic_lat_max, rofs_greenland_lat_bnds, rofs_greenland_lon_bnds, &
+         rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, &
+         rofs_greenland_liq_frac, rofs_greenland_ice_frac
 
     rc = ESMF_SUCCESS
 
@@ -253,10 +259,12 @@ contains
        write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
        write(logunit,'(2a,l6)') subname,' flds_rofs         = ',split_rofs
        write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_min = ',rofs_greenland_lat_min
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lat_max = ',rofs_greenland_lat_max
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lon_min = ',rofs_greenland_lon_min
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_lon_max = ',rofs_greenland_lon_max
+       write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lat_bnds = ',rofs_greenland_lat_bnds
+       write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lon_bnds = ',rofs_greenland_lon_bnds
+       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_liq_frac = ',rofs_antarctic_liq_frac
+       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_ice_frac = ',rofs_antarctic_ice_frac
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_liq_frac = ',rofs_greenland_liq_frac
+       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_ice_frac = ',rofs_greenland_ice_frac
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -266,10 +274,10 @@ contains
        if (rofi_scale_normalise) bcasttmp(5) = 1
 
        rbcasttmp(1) = rofs_antarctic_lat_max
-       rbcasttmp(2) = rofs_greenland_lat_min
-       rbcasttmp(3) = rofs_greenland_lat_max
-       rbcasttmp(4) = rofs_greenland_lon_min
-       rbcasttmp(5) = rofs_greenland_lon_max
+       rbcasttmp(2) = rofs_antarctic_liq_frac
+       rbcasttmp(3) = rofs_antarctic_ice_frac
+       rbcasttmp(4) = rofs_greenland_liq_frac
+       rbcasttmp(5) = rofs_greenland_ice_frac
     end if
 
     ! broadcast namelist input
@@ -290,6 +298,10 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rofi_scale_nh, 12, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofs_greenland_lat_bnds, 2, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofs_greenland_lon_bnds, 2, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rbcasttmp, 5, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -300,10 +312,10 @@ contains
     rofi_scale_normalise = (bcasttmp(5) == 1)
 
     rofs_antarctic_lat_max = rbcasttmp(1)
-    rofs_greenland_lat_min = rbcasttmp(2)
-    rofs_greenland_lat_max = rbcasttmp(3)
-    rofs_greenland_lon_min = rbcasttmp(4)
-    rofs_greenland_lon_max = rbcasttmp(5)
+    rofs_antarctic_liq_frac = rbcasttmp(2)
+    rofs_antarctic_ice_frac = rbcasttmp(3)
+    rofs_greenland_liq_frac = rbcasttmp(4)
+    rofs_greenland_ice_frac = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -320,10 +332,23 @@ contains
     end if
     if (split_rofs) then
        ! The Greenland box longitudes are compared with model longitudes wrapped into [-180,180)
-       if (rofs_greenland_lon_min < -180._r8 .or. rofs_greenland_lon_max >= 180._r8 .or. &
-           rofs_greenland_lon_min > rofs_greenland_lon_max) then
-          call shr_log_error(subname//' ERROR: rofs_greenland_lon_min/max must be in [-180,180) '// &
-               'with rofs_greenland_lon_min <= rofs_greenland_lon_max', rc=rc)
+       if (rofs_greenland_lon_bnds(1) < -180._r8 .or. rofs_greenland_lon_bnds(2) >= 180._r8 .or. &
+           rofs_greenland_lon_bnds(1) > rofs_greenland_lon_bnds(2)) then
+          call shr_log_error(subname//' ERROR: rofs_greenland_lon_bnds must be in [-180,180) '// &
+               'with rofs_greenland_lon_bnds(1) <= rofs_greenland_lon_bnds(2)', rc=rc)
+          return
+       end if
+       if (rofs_greenland_lat_bnds(1) > rofs_greenland_lat_bnds(2)) then
+          call shr_log_error(subname//' ERROR: rofs_greenland_lat_bnds(1) must be '// &
+               '<= rofs_greenland_lat_bnds(2)', rc=rc)
+          return
+       end if
+       if (rofs_antarctic_liq_frac < 0._r8 .or. rofs_antarctic_liq_frac > 1._r8 .or. &
+           rofs_antarctic_ice_frac < 0._r8 .or. rofs_antarctic_ice_frac > 1._r8 .or. &
+           rofs_greenland_liq_frac < 0._r8 .or. rofs_greenland_liq_frac > 1._r8 .or. &
+           rofs_greenland_ice_frac < 0._r8 .or. rofs_greenland_ice_frac > 1._r8) then
+          call shr_log_error(subname//' ERROR: rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, '// &
+               'rofs_greenland_liq_frac and rofs_greenland_ice_frac must be in [0,1]', rc=rc)
           return
        end if
     end if
@@ -527,8 +552,7 @@ contains
        select case (trim(datamode))
        case('copyall')
           call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofs, &
-               rofs_antarctic_lat_max, rofs_greenland_lat_min, rofs_greenland_lat_max, &
-               rofs_greenland_lon_min, rofs_greenland_lon_max, rc)
+               rofs_antarctic_lat_max, rofs_greenland_lat_bnds, rofs_greenland_lon_bnds, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        case('cplhist')
           call drof_datamode_cplhist_init_pointers(exportState, sdat, rc)
@@ -569,7 +593,9 @@ contains
        call drof_datamode_copyall_rofi_scale(rofi_scale_nh, target_ymd, target_tod, sdat%model_calendar, &
             logunit, scale_nh, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call drof_datamode_copyall_advance(split_rofs, sdat%model_lat, scale_sh, scale_nh)
+       call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh, &
+            split_rofs, rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, rofs_greenland_liq_frac, &
+            rofs_greenland_ice_frac)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default

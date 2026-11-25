@@ -75,17 +75,15 @@ contains
 
   !===============================================================================
   subroutine drof_datamode_copyall_init_pointers(exportState, sdat, split_rofs, &
-       antarctic_lat_max, greenland_lat_min, greenland_lat_max, greenland_lon_min, greenland_lon_max, rc)
+       antarctic_lat_max, greenland_lat_bnds, greenland_lon_bnds, rc)
 
     ! input/output variables
     type(ESMF_State)       , intent(inout) :: exportState
     type(shr_strdata_type) , intent(in)    :: sdat
     logical                , intent(in)    :: split_rofs
     real(r8)               , intent(in)    :: antarctic_lat_max
-    real(r8)               , intent(in)    :: greenland_lat_min
-    real(r8)               , intent(in)    :: greenland_lat_max
-    real(r8)               , intent(in)    :: greenland_lon_min
-    real(r8)               , intent(in)    :: greenland_lon_max
+    real(r8)               , intent(in)    :: greenland_lat_bnds(2)
+    real(r8)               , intent(in)    :: greenland_lon_bnds(2)
     integer                , intent(out)   :: rc
 
     ! local variables
@@ -123,9 +121,9 @@ contains
        return
     end if
 
-    ! Determine the regions used to construct Forr_rofs when split_rofs is true
-    !  - Antarctica: all of Forr_rofl is treated as basal melt
-    !  - Greenland: Forr_rofi is split evenly between Forr_rofi and Forr_rofs
+    ! Determine the Antarctic/Greenland regions used to construct Forr_rofs when split_rofs is
+    ! true. The fraction of Forr_rofl/Forr_rofi sent to Forr_rofs within each region is configured
+    ! separately (see the rofs_*_frac arguments to drof_datamode_copyall_advance).
     if (split_rofs) then
        if (.not. associated(sdat%model_lat) .or. .not. associated(sdat%model_lon)) then
           call shr_log_error(subname//'ERROR: sdat%model_lat/model_lon are not associated', rc=rc)
@@ -137,32 +135,37 @@ contains
        do ni = 1, size(Forr_rofi)
           ! wrap longitude into [-180,180)
           lon = sdat%model_lon(ni) - 360._r8 * floor((sdat%model_lon(ni) + 180._r8) / 360._r8)
-          greenland_mask(ni) = (sdat%model_lat(ni) >= greenland_lat_min) .and. &
-                               (sdat%model_lat(ni) <= greenland_lat_max) .and. &
-                               (lon >= greenland_lon_min) .and. (lon <= greenland_lon_max)
+          greenland_mask(ni) = (sdat%model_lat(ni) >= greenland_lat_bnds(1)) .and. &
+                               (sdat%model_lat(ni) <= greenland_lat_bnds(2)) .and. &
+                               (lon >= greenland_lon_bnds(1)) .and. (lon <= greenland_lon_bnds(2))
        end do
     end if
 
   end subroutine drof_datamode_copyall_init_pointers
 
   !===============================================================================
-  subroutine drof_datamode_copyall_advance(split_rofs, model_lat, rofi_scale_sh, rofi_scale_nh)
+  subroutine drof_datamode_copyall_advance(model_lat, rofi_scale_sh, rofi_scale_nh, split_rofs, &
+       rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, rofs_greenland_liq_frac, rofs_greenland_ice_frac)
 
     ! input/output variables
-    logical,  intent(in) :: split_rofs
     real(r8), intent(in) :: model_lat(:)
-    real(r8), intent(in) :: rofi_scale_sh  ! Forr_rofi scale factor for lat < 0
-    real(r8), intent(in) :: rofi_scale_nh  ! Forr_rofi scale factor for lat >= 0
+    real(r8), intent(in) :: rofi_scale_sh            ! Forr_rofi scale factor for lat < 0
+    real(r8), intent(in) :: rofi_scale_nh            ! Forr_rofi scale factor for lat >= 0
+    logical,  intent(in) :: split_rofs               ! If true, split into Forr_rofs using the fractions below
+    real(r8), intent(in) :: rofs_antarctic_liq_frac  ! Fraction of Forr_rofl assigned to Forr_rofs around Antarctica
+    real(r8), intent(in) :: rofs_antarctic_ice_frac  ! Fraction of Forr_rofi assigned to Forr_rofs around Antarctica
+    real(r8), intent(in) :: rofs_greenland_liq_frac  ! Fraction of Forr_rofl assigned to Forr_rofs around Greenland
+    real(r8), intent(in) :: rofs_greenland_ice_frac  ! Fraction of Forr_rofi assigned to Forr_rofs around Greenland
 
     ! local variables
     integer  :: ni
-    real(r8) :: rofl, rofi
+    real(r8) :: rofl, rofi, rofs_contrib
     !-------------------------------------------------------------------------------
 
     ! Zero out "special values" of export fields.
-    ! If split_rofs is on, all of Forr_rofl becomes Forr_rofs around Antarctica, and 50% of
-    ! Forr_rofi becomes Forr_rofs around Greenland. Any Forr_rofi scaling is applied after
-    ! this split, so it does not affect Forr_rofs.
+    ! If split_rofs is on, the configured antarctic/greenland liq/ice fractions of Forr_rofl/Forr_rofi
+    ! are assigned to Forr_rofs within each region. Any Forr_rofi scaling is applied after this split,
+    ! so it does not affect Forr_rofs.
     if (split_rofs) Forr_rofs(:) = 0._r8
 
     if (associated(strm_Forr_rofl)) then
@@ -174,8 +177,13 @@ contains
           end if
           if (split_rofs) then
              if (antarctic_mask(ni)) then
-                Forr_rofs(ni) = Forr_rofs(ni) + rofl
-                Forr_rofl(ni) = 0._r8
+                rofs_contrib = rofs_antarctic_liq_frac * rofl
+                Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
+                Forr_rofl(ni) = rofl - rofs_contrib
+             else if (greenland_mask(ni)) then
+                rofs_contrib = rofs_greenland_liq_frac * rofl
+                Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
+                Forr_rofl(ni) = rofl - rofs_contrib
              else
                 Forr_rofl(ni) = rofl
              end if
@@ -194,9 +202,14 @@ contains
           end if
           Forr_rofi(ni) = rofi
           if (split_rofs) then
-             if (greenland_mask(ni)) then
-                Forr_rofs(ni) = Forr_rofs(ni) + 0.5_r8 * rofi
-                Forr_rofi(ni) = 0.5_r8 * rofi
+             if (antarctic_mask(ni)) then
+                rofs_contrib = rofs_antarctic_ice_frac * rofi
+                Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
+                Forr_rofi(ni) = rofi - rofs_contrib
+             else if (greenland_mask(ni)) then
+                rofs_contrib = rofs_greenland_ice_frac * rofi
+                Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
+                Forr_rofi(ni) = rofi - rofs_contrib
              end if
           end if
        end do
