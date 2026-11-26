@@ -145,17 +145,17 @@ contains
 
   !===============================================================================
   subroutine drof_datamode_copyall_advance(model_lat, rofi_scale_sh, rofi_scale_nh, split_rofs, &
-       rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, rofs_greenland_liq_frac, rofs_greenland_ice_frac)
+       rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, rofl2rofs_frac_greenland, rofi2rofs_frac_greenland)
 
     ! input/output variables
     real(r8), intent(in) :: model_lat(:)
     real(r8), intent(in) :: rofi_scale_sh            ! Forr_rofi scale factor for lat < 0
     real(r8), intent(in) :: rofi_scale_nh            ! Forr_rofi scale factor for lat >= 0
     logical,  intent(in) :: split_rofs               ! If true, split into Forr_rofs using the fractions below
-    real(r8), intent(in) :: rofs_antarctic_liq_frac  ! Fraction of Forr_rofl assigned to Forr_rofs around Antarctica
-    real(r8), intent(in) :: rofs_antarctic_ice_frac  ! Fraction of Forr_rofi assigned to Forr_rofs around Antarctica
-    real(r8), intent(in) :: rofs_greenland_liq_frac  ! Fraction of Forr_rofl assigned to Forr_rofs around Greenland
-    real(r8), intent(in) :: rofs_greenland_ice_frac  ! Fraction of Forr_rofi assigned to Forr_rofs around Greenland
+    real(r8), intent(in) :: rofl2rofs_frac_antarctic  ! Fraction of Forr_rofl assigned to Forr_rofs around Antarctica
+    real(r8), intent(in) :: rofi2rofs_frac_antarctic  ! Fraction of Forr_rofi assigned to Forr_rofs around Antarctica
+    real(r8), intent(in) :: rofl2rofs_frac_greenland  ! Fraction of Forr_rofl assigned to Forr_rofs around Greenland
+    real(r8), intent(in) :: rofi2rofs_frac_greenland  ! Fraction of Forr_rofi assigned to Forr_rofs around Greenland
 
     ! local variables
     integer  :: ni
@@ -177,11 +177,11 @@ contains
           end if
           if (split_rofs) then
              if (antarctic_mask(ni)) then
-                rofs_contrib = rofs_antarctic_liq_frac * rofl
+                rofs_contrib = rofl2rofs_frac_antarctic * rofl
                 Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
                 Forr_rofl(ni) = rofl - rofs_contrib
              else if (greenland_mask(ni)) then
-                rofs_contrib = rofs_greenland_liq_frac * rofl
+                rofs_contrib = rofl2rofs_frac_greenland * rofl
                 Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
                 Forr_rofl(ni) = rofl - rofs_contrib
              else
@@ -203,11 +203,11 @@ contains
           Forr_rofi(ni) = rofi
           if (split_rofs) then
              if (antarctic_mask(ni)) then
-                rofs_contrib = rofs_antarctic_ice_frac * rofi
+                rofs_contrib = rofi2rofs_frac_antarctic * rofi
                 Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
                 Forr_rofi(ni) = rofi - rofs_contrib
              else if (greenland_mask(ni)) then
-                rofs_contrib = rofs_greenland_ice_frac * rofi
+                rofs_contrib = rofi2rofs_frac_greenland * rofi
                 Forr_rofs(ni) = Forr_rofs(ni) + rofs_contrib
                 Forr_rofi(ni) = rofi - rofs_contrib
              end if

@@ -101,10 +101,10 @@ module cdeps_drof_comp
                                                               ! Forr_rofl/i are (partly) sent to Forr_rofs
   real(r8)                     :: rofs_greenland_lon_bnds(2) = (/-110._r8, -10._r8/) ! Min/max lon of Greenland box where
                                                               ! Forr_rofl/i are (partly) sent to Forr_rofs
-  real(r8)                     :: rofs_antarctic_liq_frac = 1.0_r8 ! Fraction of Forr_rofl sent to Forr_rofs around Antarctica
-  real(r8)                     :: rofs_antarctic_ice_frac = 0.0_r8 ! Fraction of Forr_rofi sent to Forr_rofs around Antarctica
-  real(r8)                     :: rofs_greenland_liq_frac = 0.0_r8 ! Fraction of Forr_rofl sent to Forr_rofs around Greenland
-  real(r8)                     :: rofs_greenland_ice_frac = 0.5_r8 ! Fraction of Forr_rofi sent to Forr_rofs around Greenland
+  real(r8)                     :: rofl2rofs_frac_antarctic = 1.0_r8 ! Frac of Forr_rofl sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofi2rofs_frac_antarctic = 0.0_r8 ! Frac of Forr_rofi sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofl2rofs_frac_greenland = 0.0_r8 ! Frac of Forr_rofl sent to Forr_rofs around Greenland
+  real(r8)                     :: rofi2rofs_frac_greenland = 0.5_r8 ! Frac of Forr_rofi sent to Forr_rofs around Greenland
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -205,8 +205,8 @@ contains
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
          rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise, &
          rofs_antarctic_lat_max, rofs_greenland_lat_bnds, rofs_greenland_lon_bnds, &
-         rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, &
-         rofs_greenland_liq_frac, rofs_greenland_ice_frac
+         rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, &
+         rofl2rofs_frac_greenland, rofi2rofs_frac_greenland
 
     rc = ESMF_SUCCESS
 
@@ -261,10 +261,10 @@ contains
        write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
        write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lat_bnds = ',rofs_greenland_lat_bnds
        write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lon_bnds = ',rofs_greenland_lon_bnds
-       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_liq_frac = ',rofs_antarctic_liq_frac
-       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_ice_frac = ',rofs_antarctic_ice_frac
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_liq_frac = ',rofs_greenland_liq_frac
-       write(logunit,'(2a,g12.5)') subname,' rofs_greenland_ice_frac = ',rofs_greenland_ice_frac
+       write(logunit,'(2a,g12.5)') subname,' rofl2rofs_frac_antarctic = ',rofl2rofs_frac_antarctic
+       write(logunit,'(2a,g12.5)') subname,' rofi2rofs_frac_antarctic = ',rofi2rofs_frac_antarctic
+       write(logunit,'(2a,g12.5)') subname,' rofl2rofs_frac_greenland = ',rofl2rofs_frac_greenland
+       write(logunit,'(2a,g12.5)') subname,' rofi2rofs_frac_greenland = ',rofi2rofs_frac_greenland
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -274,10 +274,10 @@ contains
        if (rofi_scale_normalise) bcasttmp(5) = 1
 
        rbcasttmp(1) = rofs_antarctic_lat_max
-       rbcasttmp(2) = rofs_antarctic_liq_frac
-       rbcasttmp(3) = rofs_antarctic_ice_frac
-       rbcasttmp(4) = rofs_greenland_liq_frac
-       rbcasttmp(5) = rofs_greenland_ice_frac
+       rbcasttmp(2) = rofl2rofs_frac_antarctic
+       rbcasttmp(3) = rofi2rofs_frac_antarctic
+       rbcasttmp(4) = rofl2rofs_frac_greenland
+       rbcasttmp(5) = rofi2rofs_frac_greenland
     end if
 
     ! broadcast namelist input
@@ -312,10 +312,10 @@ contains
     rofi_scale_normalise = (bcasttmp(5) == 1)
 
     rofs_antarctic_lat_max = rbcasttmp(1)
-    rofs_antarctic_liq_frac = rbcasttmp(2)
-    rofs_antarctic_ice_frac = rbcasttmp(3)
-    rofs_greenland_liq_frac = rbcasttmp(4)
-    rofs_greenland_ice_frac = rbcasttmp(5)
+    rofl2rofs_frac_antarctic = rbcasttmp(2)
+    rofi2rofs_frac_antarctic = rbcasttmp(3)
+    rofl2rofs_frac_greenland = rbcasttmp(4)
+    rofi2rofs_frac_greenland = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -343,12 +343,12 @@ contains
                '<= rofs_greenland_lat_bnds(2)', rc=rc)
           return
        end if
-       if (rofs_antarctic_liq_frac < 0._r8 .or. rofs_antarctic_liq_frac > 1._r8 .or. &
-           rofs_antarctic_ice_frac < 0._r8 .or. rofs_antarctic_ice_frac > 1._r8 .or. &
-           rofs_greenland_liq_frac < 0._r8 .or. rofs_greenland_liq_frac > 1._r8 .or. &
-           rofs_greenland_ice_frac < 0._r8 .or. rofs_greenland_ice_frac > 1._r8) then
-          call shr_log_error(subname//' ERROR: rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, '// &
-               'rofs_greenland_liq_frac and rofs_greenland_ice_frac must be in [0,1]', rc=rc)
+       if (rofl2rofs_frac_antarctic < 0._r8 .or. rofl2rofs_frac_antarctic > 1._r8 .or. &
+           rofi2rofs_frac_antarctic < 0._r8 .or. rofi2rofs_frac_antarctic > 1._r8 .or. &
+           rofl2rofs_frac_greenland < 0._r8 .or. rofl2rofs_frac_greenland > 1._r8 .or. &
+           rofi2rofs_frac_greenland < 0._r8 .or. rofi2rofs_frac_greenland > 1._r8) then
+          call shr_log_error(subname//' ERROR: rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, '// &
+               'rofl2rofs_frac_greenland and rofi2rofs_frac_greenland must be in [0,1]', rc=rc)
           return
        end if
     end if
@@ -594,8 +594,8 @@ contains
             logunit, scale_nh, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh, &
-            split_rofs, rofs_antarctic_liq_frac, rofs_antarctic_ice_frac, rofs_greenland_liq_frac, &
-            rofs_greenland_ice_frac)
+            split_rofs, rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, rofl2rofs_frac_greenland, &
+            rofi2rofs_frac_greenland)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default
