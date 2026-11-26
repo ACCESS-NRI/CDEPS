@@ -93,6 +93,18 @@ module cdeps_drof_comp
   logical                      :: rofi_scale_normalise = .false. ! true => rescale so the annual mean scale factor is 1
                                                               ! (365 day year), i.e. no change to the annual Forr_rofi
                                                               ! total for constant input
+  logical                      :: split_rofs = .false.        ! If true, split incoming runoff into Forr_rofs using bounds
+                                                              ! below. Set by the flds_rofs attribute
+  real(r8)                     :: rofs_antarctic_lat_max = -60._r8 ! Lat at/south of which Forr_rofl/i are (partly) sent
+                                                              ! to Forr_rofs
+  real(r8)                     :: rofs_greenland_lat_bnds(2) = (/58._r8, 85._r8/) ! Min/max lat of Greenland box where
+                                                              ! Forr_rofl/i are (partly) sent to Forr_rofs
+  real(r8)                     :: rofs_greenland_lon_bnds(2) = (/-110._r8, -10._r8/) ! Min/max lon of Greenland box where
+                                                              ! Forr_rofl/i are (partly) sent to Forr_rofs
+  real(r8)                     :: rofl2rofs_frac_antarctic = 1.0_r8 ! Frac of Forr_rofl sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofi2rofs_frac_antarctic = 0.0_r8 ! Frac of Forr_rofi sent to Forr_rofs around Antarctica
+  real(r8)                     :: rofl2rofs_frac_greenland = 0.0_r8 ! Frac of Forr_rofl sent to Forr_rofs around Greenland
+  real(r8)                     :: rofi2rofs_frac_greenland = 0.5_r8 ! Frac of Forr_rofi sent to Forr_rofs around Greenland
   integer                      :: nx_global
   integer                      :: ny_global
   logical                      :: skip_restart_read = .false. ! true => skip restart read
@@ -183,12 +195,18 @@ contains
     integer           :: ierr       ! error code
     type(ESMF_VM)     :: vm
     integer           :: bcasttmp(5)
+    real(r8)          :: rbcasttmp(5)
+    character(len=CL) :: cvalue
+    logical           :: isPresent, isSet
     character(len=*),parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
     namelist / drof_nml / datamode, model_meshfile, model_maskfile, &
          restfilm, nx_global, ny_global, skip_restart_read, export_all, &
-         rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise
+         rofi_scale_sh, rofi_scale_nh, rofi_scale_normalise, &
+         rofs_antarctic_lat_max, rofs_greenland_lat_bnds, rofs_greenland_lon_bnds, &
+         rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, &
+         rofl2rofs_frac_greenland, rofi2rofs_frac_greenland
 
     rc = ESMF_SUCCESS
 
@@ -204,6 +222,13 @@ contains
 
     ! determine logical mainproc
     mainproc = (my_task == main_task)
+
+    ! Optional splitting of runoff into Forr_rofs (submarine melt), set by the flds_rofs
+    ! attribute shared with the mediator and ocean component
+    call NUOPC_CompAttributeGet(gcomp, name='flds_rofs', value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) read(cvalue,*) split_rofs
 
     ! Read drof_nml from nlfilename
     if (mainproc) then
@@ -232,6 +257,14 @@ contains
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_sh     = ',rofi_scale_sh
        write(logunit,'(2a,12g12.5)') subname,' rofi_scale_nh     = ',rofi_scale_nh
        write(logunit,'(2a,l6)') subname,' rofi_scale_normalise = ',rofi_scale_normalise
+       write(logunit,'(2a,l6)') subname,' flds_rofs         = ',split_rofs
+       write(logunit,'(2a,g12.5)') subname,' rofs_antarctic_lat_max = ',rofs_antarctic_lat_max
+       write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lat_bnds = ',rofs_greenland_lat_bnds
+       write(logunit,'(2a,2g12.5)') subname,' rofs_greenland_lon_bnds = ',rofs_greenland_lon_bnds
+       write(logunit,'(2a,g12.5)') subname,' rofl2rofs_frac_antarctic = ',rofl2rofs_frac_antarctic
+       write(logunit,'(2a,g12.5)') subname,' rofi2rofs_frac_antarctic = ',rofi2rofs_frac_antarctic
+       write(logunit,'(2a,g12.5)') subname,' rofl2rofs_frac_greenland = ',rofl2rofs_frac_greenland
+       write(logunit,'(2a,g12.5)') subname,' rofi2rofs_frac_greenland = ',rofi2rofs_frac_greenland
 
        bcasttmp = 0
        bcasttmp(1) = nx_global
@@ -239,6 +272,12 @@ contains
        if (skip_restart_read) bcasttmp(3) = 1
        if (export_all) bcasttmp(4) = 1
        if (rofi_scale_normalise) bcasttmp(5) = 1
+
+       rbcasttmp(1) = rofs_antarctic_lat_max
+       rbcasttmp(2) = rofl2rofs_frac_antarctic
+       rbcasttmp(3) = rofi2rofs_frac_antarctic
+       rbcasttmp(4) = rofl2rofs_frac_greenland
+       rbcasttmp(5) = rofi2rofs_frac_greenland
     end if
 
     ! broadcast namelist input
@@ -259,12 +298,24 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call ESMF_VMBroadcast(vm, rofi_scale_nh, 12, main_task, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofs_greenland_lat_bnds, 2, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rofs_greenland_lon_bnds, 2, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_VMBroadcast(vm, rbcasttmp, 5, main_task, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     nx_global = bcasttmp(1)
     ny_global = bcasttmp(2)
     skip_restart_read = (bcasttmp(3) == 1)
     export_all = (bcasttmp(4) == 1)
     rofi_scale_normalise = (bcasttmp(5) == 1)
+
+    rofs_antarctic_lat_max = rbcasttmp(1)
+    rofl2rofs_frac_antarctic = rbcasttmp(2)
+    rofi2rofs_frac_antarctic = rbcasttmp(3)
+    rofl2rofs_frac_greenland = rbcasttmp(4)
+    rofi2rofs_frac_greenland = rbcasttmp(5)
 
     ! Validate datamode
     select case (trim(datamode))
@@ -275,6 +326,33 @@ contains
        return
     end select
 
+    if (split_rofs .and. trim(datamode) /= 'copyall') then
+       call shr_log_error(subname//' ERROR: flds_rofs is only supported for datamode copyall', rc=rc)
+       return
+    end if
+    if (split_rofs) then
+       ! The Greenland box longitudes are compared with model longitudes wrapped into [-180,180)
+       if (rofs_greenland_lon_bnds(1) < -180._r8 .or. rofs_greenland_lon_bnds(2) >= 180._r8 .or. &
+           rofs_greenland_lon_bnds(1) > rofs_greenland_lon_bnds(2)) then
+          call shr_log_error(subname//' ERROR: rofs_greenland_lon_bnds must be in [-180,180) '// &
+               'with rofs_greenland_lon_bnds(1) <= rofs_greenland_lon_bnds(2)', rc=rc)
+          return
+       end if
+       if (rofs_greenland_lat_bnds(1) > rofs_greenland_lat_bnds(2)) then
+          call shr_log_error(subname//' ERROR: rofs_greenland_lat_bnds(1) must be '// &
+               '<= rofs_greenland_lat_bnds(2)', rc=rc)
+          return
+       end if
+       if (rofl2rofs_frac_antarctic < 0._r8 .or. rofl2rofs_frac_antarctic > 1._r8 .or. &
+           rofi2rofs_frac_antarctic < 0._r8 .or. rofi2rofs_frac_antarctic > 1._r8 .or. &
+           rofl2rofs_frac_greenland < 0._r8 .or. rofl2rofs_frac_greenland > 1._r8 .or. &
+           rofi2rofs_frac_greenland < 0._r8 .or. rofi2rofs_frac_greenland > 1._r8) then
+          call shr_log_error(subname//' ERROR: rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, '// &
+               'rofl2rofs_frac_greenland and rofi2rofs_frac_greenland must be in [0,1]', rc=rc)
+          return
+       end if
+    end if
+
     call check_rofi_scale(rofi_scale_sh, 'rofi_scale_sh', rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call check_rofi_scale(rofi_scale_nh, 'rofi_scale_nh', rc)
@@ -283,7 +361,7 @@ contains
     ! Advertise export fields
     select case (trim(datamode))
     case('copyall')
-       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, rc)
+       call drof_datamode_copyall_advertise(exportState, fldsexport, flds_scalar_name, split_rofs, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     case('cplhist')
        call drof_datamode_cplhist_advertise(exportState, fldsexport, flds_scalar_name, rc)
@@ -473,7 +551,8 @@ contains
        ! Initialize stream and export state pointers
        select case (trim(datamode))
        case('copyall')
-          call drof_datamode_copyall_init_pointers(exportState, sdat, rc)
+          call drof_datamode_copyall_init_pointers(exportState, sdat, split_rofs, &
+               rofs_antarctic_lat_max, rofs_greenland_lat_bnds, rofs_greenland_lon_bnds, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        case('cplhist')
           call drof_datamode_cplhist_init_pointers(exportState, sdat, rc)
@@ -514,7 +593,9 @@ contains
        call drof_datamode_copyall_rofi_scale(rofi_scale_nh, target_ymd, target_tod, sdat%model_calendar, &
             logunit, scale_nh, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh)
+       call drof_datamode_copyall_advance(sdat%model_lat, scale_sh, scale_nh, &
+            split_rofs, rofl2rofs_frac_antarctic, rofi2rofs_frac_antarctic, rofl2rofs_frac_greenland, &
+            rofi2rofs_frac_greenland)
     case('cplhist')
        call drof_datamode_cplhist_advance()
     case default
